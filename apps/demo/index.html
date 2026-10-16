@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Ciudad QR</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Ciudad QR</h1>
+        <p>Los tejados de la ciudad forman un código QR escaneable.</p>
+      </header>
+      <qr-city id="city" data="https://github.com/dolivag/qr-city" label="Ciudad 3D cuyos tejados forman un código QR"></qr-city>
+      <form id="form" autocomplete="off">
+        <label for="data">Enlace o texto</label>
+        <input id="data" type="text" value="https://github.com/dolivag/qr-city" maxlength="300" spellcheck="false" />
+        <div class="row">
+          <button type="submit" class="primary">Construir ciudad</button>
+          <button type="button" id="toggle">Revelar QR</button>
+          <button type="button" id="png">Descargar PNG</button>
+        </div>
+        <p id="msg" role="status"></p>
+      </form>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

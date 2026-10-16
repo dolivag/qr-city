@@ -1,0 +1,28 @@
+{
+  "name": "@qr-city/element",
+  "version": "0.0.0",
+  "description": "The <qr-city> Web Component: a 3D city whose rooftops form a scannable QR code. Works in any framework.",
+  "keywords": ["qr", "qrcode", "web-component", "custom-element", "three", "3d"],
+  "license": "MIT",
+  "author": "Dani Oliva",
+  "repository": { "type": "git", "url": "git+https://github.com/dolivag/qr-city.git", "directory": "packages/element" },
+  "type": "module",
+  "sideEffects": ["./dist/define.js"],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./define": { "types": "./dist/define.d.ts", "import": "./dist/define.js" },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": { "@qr-city/core": "0.0.0" },
+  "peerDependencies": { "three": ">=0.160.0 <1" }
+}
