@@ -2,7 +2,7 @@
 
 Una ciudad 3D isométrica cuyos **tejados forman un código QR escaneable**. Cada módulo oscuro del QR es un edificio; los claros son calles y suelo. Al pasar a la vista cenital, el QR se lee.
 
-> Estado: núcleo (`@qr-city/core`), Web Component (`@qr-city/element`) y demo con la intro de la puerta (`intro: 'door'`). Cuatro estilos de ciudad (*Moderna*, *Costera*, *Ciberpunk*, *Nevada*) y zoom.
+> Estado: núcleo (`@qr-city/core`), Web Component (`@qr-city/element`), wrappers de React, Vue y Angular, y demo con la intro de la puerta (`intro: 'door'`). Cuatro estilos de ciudad (*Moderna*, *Costera*, *Ciberpunk*, *Nevada*) y zoom.
 
 ## Paquetes
 
@@ -10,7 +10,20 @@ Una ciudad 3D isométrica cuyos **tejados forman un código QR escaneable**. Cad
 | --- | --- |
 | [`@qr-city/core`](packages/core) | Núcleo agnóstico de framework: `createQrCity(el, options)`. `three` es *peerDependency*. |
 | [`@qr-city/element`](packages/element) | Web Component `<qr-city>` para cualquier framework. |
+| [`@qr-city/react`](packages/react) | Componente `<QrCity>` para React ≥ 18 (compatible con SSR/Next.js). |
+| [`@qr-city/vue`](packages/vue) | Componente `<QrCity>` para Vue ≥ 3.3. |
+| [`@qr-city/angular`](packages/angular) | Componente standalone `<qr-city-view>` para Angular ≥ 21 (zoneless y SSR). |
 | [`apps/demo`](apps/demo) | App de demo (Vite). |
+
+## Elige tu paquete
+
+| Framework | Instalación | Uso |
+| --- | --- | --- |
+| Cualquiera / HTML | `npm i @qr-city/element three` | `<qr-city data="…">` |
+| React | `npm i @qr-city/react three` | `<QrCity data="…" />` |
+| Vue | `npm i @qr-city/vue three` | `<QrCity data="…" />` |
+| Angular | `npm i @qr-city/angular three` | `<qr-city-view data="…" />` |
+| Sin framework | `npm i @qr-city/core three` | `createQrCity(el, { data })` |
 
 ## Uso rápido
 

@@ -1,0 +1,17 @@
+{
+  "name": "@qr-city/angular",
+  "version": "0.0.0",
+  "description": "Angular component for qr-city: a 3D city whose rooftops form a scannable QR code.",
+  "keywords": ["qr", "qrcode", "angular", "three", "3d", "isometric"],
+  "license": "MIT",
+  "author": "Dani Oliva",
+  "repository": { "type": "git", "url": "git+https://github.com/dolivag/qr-city.git", "directory": "packages/angular" },
+  "sideEffects": false,
+  "scripts": {
+    "build": "ng-packagr -p ng-package.json -c tsconfig.lib.json",
+    "typecheck": "tsc -p tsconfig.lib.json --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": { "@qr-city/core": "0.0.0", "tslib": "^2.3.0" },
+  "peerDependencies": { "@angular/core": ">=21.0.0", "three": ">=0.160.0 <1" }
+}
