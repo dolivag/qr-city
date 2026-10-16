@@ -1,13 +1,12 @@
 name: CI
 
-# Los PR que solo tocan documentación no ejecutan nada. El test de escaneo (más caro) vive en
-# escaneo.yml y solo corre cuando cambia el render o el propio test.
+# Corre siempre (también en PR que solo tocan documentación): es el check obligatorio de master, y
+# un check obligatorio que se salta por filtro de rutas dejaría el PR bloqueado. El test de escaneo
+# (más caro) vive en escaneo.yml y solo corre cuando cambia el render o el propio test.
 on:
   pull_request:
-    paths-ignore: ['**/*.md', 'docs/**', 'LICENSE']
   push:
     branches: [master]
-    paths-ignore: ['**/*.md', 'docs/**', 'LICENSE']
   workflow_dispatch:
 
 permissions:

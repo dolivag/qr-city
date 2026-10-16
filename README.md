@@ -55,7 +55,7 @@ npm run demo        # demo en http://localhost:5173
 npm run lint && npm run typecheck && npm test && npm run build
 ```
 
-Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest. La CI (GitHub Actions) ejecuta `lint`, `typecheck`, `test` y `build` en cada PR y en cada push a `master` (no se ejecuta si solo cambia documentación); los mismos comandos funcionan en local.
+Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest. La CI (GitHub Actions) ejecuta `lint`, `typecheck`, `test` y `build` en cada PR y en cada push a `master`; los mismos comandos funcionan en local.
 
 ### Test de escaneabilidad
 
