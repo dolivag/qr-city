@@ -13,7 +13,11 @@
     "typecheck": "nx run-many -t typecheck",
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
-    "demo": "nx run demo:dev"
+    "demo": "nx run demo:dev",
+    "size": "npm run build && size-limit",
+    "changeset": "changeset",
+    "version": "changeset version && npm install --package-lock-only",
+    "release": "npm run build && node scripts/publish.mjs && git push --tags"
   },
   "engines": {
     "node": ">=20"
@@ -24,7 +28,10 @@
     "@angular/compiler-cli": "^21.2.25",
     "@angular/core": "^21.2.25",
     "@angular/platform-browser": "^21.2.25",
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3",
     "@eslint/js": "^10.0.1",
+    "@size-limit/file": "^14.2.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.186.0",
@@ -36,6 +43,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "rxjs": "^7.8.2",
+    "size-limit": "^14.2.0",
     "three": "^0.186.1",
     "tslib": "^2.8.1",
     "tsup": "^9.0.0",

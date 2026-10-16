@@ -53,3 +53,6 @@ jobs:
 
       - name: Build
         run: npx nx run-many -t build
+
+      - name: Tamaño de los bundles
+        run: npx size-limit

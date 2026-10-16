@@ -59,6 +59,10 @@ npm run lint && npm run typecheck && npm test && npm run build
 
 Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest. La CI (GitHub Actions) ejecuta `lint`, `typecheck`, `test` y `build` en cada PR y en cada push a `master`; los mismos comandos funcionan en local.
 
+### Publicación
+
+Las versiones se gestionan con [Changesets](https://github.com/changesets/changesets). Un PR que cambia un paquete añade una nota con `npm run changeset`; al fusionarlo, el workflow Release abre un PR «Versionar paquetes», y al fusionar ese se publica en npm (con procedencia) lo que aún no esté publicado. `npm run size` comprueba el tamaño gzip de los bundles contra `.size-limit.json` (la CI también). Todos los paquetes `@qr-city/*` comparten versión.
+
 ### Test de escaneabilidad
 
 El objetivo de la librería es que el QR se lea. [`e2e/`](e2e) renderiza la vista cenital en Chromium (WebGL por software), la decodifica con [jsQR](https://github.com/cozmo/jsQR) y comprueba que devuelve el texto original, para cada estilo y varios textos (URL corta, URL larga y UTF-8), tanto a resolución completa como reducida como lo vería una cámara. Un test comprueba además que un estilo con tejados claros **no** se lee, para asegurar que la prueba puede fallar.

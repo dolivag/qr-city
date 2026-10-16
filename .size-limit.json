@@ -1,0 +1,7 @@
+[
+  { "name": "@qr-city/core", "path": "packages/core/dist/index.js", "limit": "30 kB", "gzip": true },
+  { "name": "@qr-city/element", "path": "packages/element/dist/*.js", "limit": "4 kB", "gzip": true },
+  { "name": "@qr-city/react", "path": "packages/react/dist/index.js", "limit": "2.5 kB", "gzip": true },
+  { "name": "@qr-city/vue", "path": "packages/vue/dist/index.js", "limit": "2.5 kB", "gzip": true },
+  { "name": "@qr-city/angular", "path": "packages/angular/dist/fesm2022/qr-city-angular.mjs", "limit": "5 kB", "gzip": true }
+]
