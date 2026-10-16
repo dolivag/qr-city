@@ -1,9 +1,12 @@
-import { BufferAttribute, BufferGeometry, CylinderGeometry, DoubleSide, Group, Mesh, Points, PointsMaterial, Shape, ShapeGeometry, SphereGeometry } from 'three';
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, CylinderGeometry, DoubleSide, Group, Mesh, Points, PointsMaterial, Shape, ShapeGeometry, SphereGeometry, Sprite, SpriteMaterial } from 'three';
 import type { Object3D } from 'three';
 import { pick, rand } from '../util/math';
 import { col } from './color';
 import type { Animated, SceneCtx } from './ctx';
 import { roundedPrism } from './geometry';
+
+/** Drones are modelled small and drawn this much bigger so they are visible at the city's scale. */
+const DRONE_SCALE = 2.5;
 
 interface Flock { group: Group; birds: Bird[]; R: number; h: number; speed: number; a: number }
 interface Bird extends Object3D { userData: { pl: Object3D; pr: Object3D; phase: number; flapSpeed: number } }
@@ -60,11 +63,25 @@ export function createFlyers(ctx: SceneCtx): Flyers {
       flocks.push(fl);
     }
   } else if (kind === 'drones') {
-    const dBody = geo(roundedPrism(0.3, 0.3, 0.08).scale(1, 0.07, 1));
+    // Seen from the city's scale a 0.3-unit drone is a speck: build it 2.5× bigger (DRONE_SCALE), light the body
+    // and give each one a soft additive halo so it still reads against a bright sky.
+    const dBody = geo(roundedPrism(0.3, 0.3, 0.08).scale(1, 0.09, 1));
     const rotor = geo(new CylinderGeometry(0.1, 0.1, 0.01, 16));
-    const ledGeo = geo(new SphereGeometry(0.045, 10, 8));
-    const bodyMat = lambert(0x2e2752);
-    const rotMat = basic(0x9b8cff, { transparent: true, opacity: 0.5 });
+    const ledGeo = geo(new SphereGeometry(0.05, 10, 8));
+    const bodyMat = lambert(0x5b4fa8);
+    const rotMat = basic(0xc9c0ff, { transparent: true, opacity: 0.55 });
+    const haloTex = (() => {
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 64;
+      const g = cv.getContext('2d') as CanvasRenderingContext2D;
+      const rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      rg.addColorStop(0, 'rgba(255,255,255,0.9)');
+      rg.addColorStop(0.35, 'rgba(255,255,255,0.28)');
+      rg.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = rg;
+      g.fillRect(0, 0, 64, 64);
+      return ctx.tracker.track(new CanvasTexture(cv));
+    })();
     const leds = S.buildings.neon ?? [S.flyers.color];
     const count = profile.level === 'low' ? 4 : 9;
     for (let i = 0; i < count; i++) {
@@ -77,12 +94,19 @@ export function createFlyers(ctx: SceneCtx): Flyers {
         d.add(r);
         rotors.push(r);
       }
-      const led = new Mesh(ledGeo, basic(pick(leds, rand(i, 2))));
-      led.position.y = -0.03;
+      const ledColor = pick(leds, rand(i, 2));
+      const led = new Mesh(ledGeo, basic(ledColor));
+      led.position.y = -0.035;
       d.add(led);
+      const halo = new Sprite(ctx.tracker.track(new SpriteMaterial({
+        map: haloTex, color: col(ledColor), blending: AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.8,
+      })));
+      halo.scale.setScalar(0.9);
+      halo.position.y = -0.02;
+      d.add(halo);
       decor.add(d);
       drones.push({
-        obj: d, led, rotors, R: half * (0.2 + rand(i, 1) * 0.9), h: 6 + rand(i, 2) * 7, a: rand(i, 3) * 6.3,
+        obj: d, led, rotors, R: half * (0.2 + rand(i, 1) * 0.9), h: ctx.skyline + 1.2 + rand(i, 2) * 3.5, a: rand(i, 3) * 6.3,
         speed: (0.2 + rand(i, 4) * 0.25) * (i % 2 ? 1 : -1), phase: rand(i, 5) * 6,
       });
     }
@@ -128,7 +152,7 @@ export function createFlyers(ctx: SceneCtx): Flyers {
         d.obj.rotation.z = Math.sin(now / 900 + d.phase) * 0.08;
         for (const r of d.rotors) r.rotation.y += dt * 40;
         d.led.visible = Math.sin(now / 250 + d.phase) > -0.3;
-        d.obj.scale.setScalar(k);
+        d.obj.scale.setScalar(k * DRONE_SCALE);
       }
       if (snow && snow.visible && move) {
         const p = snow.geometry.attributes.position;
