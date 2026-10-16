@@ -30,7 +30,7 @@ export function Ciudad() {
 
 ## Props
 
-Las mismas opciones que [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label`, `doorLabel`) y las callbacks `onReveal`, `onIntroStage`, `onViewChange`, `onZoomChange` y `onError`, con dos diferencias:
+Las mismas opciones que [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label`, `doorLabel`) `fallback`, y las callbacks `onReveal`, `onIntroStage`, `onViewChange`, `onZoomChange`, `onFallback` y `onError`, con dos diferencias:
 
 - **`cityStyle`** es el estilo de la ciudad (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` o un objeto `QrCityStyle`), porque **`style`** es el estilo CSS del contenedor.
 - El resto de props de `<div>` (`className`, `style`, `aria-*`…) van al contenedor. Por defecto es un cuadrado del ancho de su padre.
@@ -42,7 +42,8 @@ Las mismas opciones que [`createQrCity`](../core) (`data`, `intro`, `pauseAtThre
 - **`intro`** se fija al crear: si cambia, el componente se reinicia.
 - **`view`** se aplica cuando cambia; el usuario puede alternar la vista con un clic sin que cambie la prop.
 - **Callbacks:** se llama siempre a la última, sin recrear la ciudad.
-- **Errores** (sin WebGL, datos inválidos…) llegan a `onError`; el componente nunca lanza al renderizar.
+- **Sin WebGL** se muestra un QR plano escaneable y se llama a `onFallback` (`fallback="none"` para recibir un error en su lugar). **Otros errores** (datos inválidos…) llegan a `onError`; el componente nunca lanza al renderizar.
+- **QR para imprimir:** `ref.current.toQrSvg()` / `toQrPng()`, o `qrToSvg(data)` / `qrToPng(data)` (se exportan, y `qrToSvg` sirve en el servidor).
 - **`ref`:** expone el controlador (`reveal()`, `setView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, `canvas`, `view`, `zoom`, `stage`…). Sus métodos no hacen nada hasta que la ciudad se monta.
 
 ### Intro de la puerta con formulario

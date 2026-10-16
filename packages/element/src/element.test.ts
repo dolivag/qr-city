@@ -7,6 +7,7 @@ function fakeController() {
   return {
     view: 'city' as 'city' | 'qr',
     openDoor: vi.fn(), continueIntro: vi.fn(), skipIntro: vi.fn(), stage: 'done',
+    fallback: false, toQrSvg: vi.fn(() => '<svg/>'), toQrPng: vi.fn(async () => new Blob()),
     zoom: 1, setZoom: vi.fn(), zoomBy: vi.fn(), resetZoom: vi.fn(),
     reveal: vi.fn(), setView: vi.fn(), toggleView: vi.fn(), setStyle: vi.fn(),
     update: vi.fn(), toPNG: vi.fn(async () => new Blob()), play: vi.fn(), pause: vi.fn(),
@@ -165,6 +166,21 @@ describe('<qr-city>', () => {
     expect(c.zoomBy).toHaveBeenCalledWith(1.5, undefined);
     expect(c.setZoom).toHaveBeenCalledWith(3, { immediate: true });
     expect(c.resetZoom).toHaveBeenCalled();
+  });
+
+  it('maps the fallback attribute, re-emits the fallback event and exposes the plain QR', async () => {
+    const el = make({ data: 'a', fallback: 'none' });
+    document.body.append(el);
+    expect(lastOptions).toMatchObject({ fallback: 'none' });
+    const reasons: string[] = [];
+    document.body.addEventListener('qr-city-fallback', (e) => reasons.push((e as CustomEvent).detail.reason.message));
+    (lastOptions.onFallback as (e: Error) => void)(new Error('no webgl'));
+    expect(reasons).toEqual(['no webgl']);
+    expect(el.toQrSvg({ margin: 2 })).toBe('<svg/>');
+    expect(controllers[0].toQrSvg).toHaveBeenCalledWith({ margin: 2 });
+    await el.toQrPng({ size: 300 });
+    expect(controllers[0].toQrPng).toHaveBeenCalledWith({ size: 300 });
+    expect(el.usingFallback).toBe(false);
   });
 
   it('forwards imperative methods', () => {

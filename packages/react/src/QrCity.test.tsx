@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { QrCityHandle } from './index';
 
+type QrHandle = QrCityHandle;
+
 type Fake = ReturnType<typeof fakeController>;
 const controllers: Fake[] = [];
 let lastOptions: Record<string, unknown> = {};
@@ -13,7 +15,7 @@ let failNext = false;
 
 function fakeController() {
   return {
-    view: 'city', zoom: 1, stage: 'done', canvas: document.createElement('canvas'),
+    view: 'city', fallback: false, zoom: 1, stage: 'done', toQrSvg: vi.fn(() => '<svg/>'), toQrPng: vi.fn(async () => new Blob()), canvas: document.createElement('canvas'),
     openDoor: vi.fn(), continueIntro: vi.fn(), skipIntro: vi.fn(), reveal: vi.fn(), setView: vi.fn(),
     toggleView: vi.fn(), setZoom: vi.fn(), zoomBy: vi.fn(), resetZoom: vi.fn(), setStyle: vi.fn(),
     update: vi.fn(), toPNG: vi.fn(async () => new Blob()), play: vi.fn(), pause: vi.fn(), resize: vi.fn(), dispose: vi.fn(),
@@ -121,6 +123,18 @@ describe('<QrCity>', () => {
     expect(controllers[0].reveal).toHaveBeenCalled();
     expect(controllers[0].setZoom).toHaveBeenCalledWith(3, { immediate: true });
     expect(ref.current?.canvas).toBe(controllers[0].canvas);
+  });
+
+  it('passes the fallback option and callback, and exposes the plain QR through the ref', async () => {
+    const onFallback = vi.fn();
+    const ref = createRef<QrHandle>();
+    await render(<QrCity data="a" fallback="none" onFallback={onFallback} ref={ref} />);
+    expect(lastOptions).toMatchObject({ fallback: 'none' });
+    (lastOptions.onFallback as (e: Error) => void)(new Error('no webgl'));
+    expect(onFallback).toHaveBeenCalledTimes(1);
+    expect(ref.current?.toQrSvg({ margin: 2 })).toBe('<svg/>');
+    expect(controllers[0].toQrSvg).toHaveBeenCalledWith({ margin: 2 });
+    expect(ref.current?.fallback).toBe(false);
   });
 
   it('reports creation failures through onError instead of throwing', async () => {

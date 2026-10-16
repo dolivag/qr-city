@@ -6,10 +6,11 @@ const INTROS: readonly QrCityIntro[] = ['door', 'flyover', 'none'];
 const VIEWS: readonly QrCityView[] = ['city', 'qr'];
 const ECCS: readonly QrCityEcc[] = ['L', 'M', 'Q', 'H'];
 const WHEELS: readonly NonNullable<QrCityOptions['wheelZoom']>[] = ['ctrl', 'always', 'off'];
+const FALLBACKS: readonly NonNullable<QrCityOptions['fallback']>[] = ['qr', 'none'];
 const QUALITIES: readonly QrCityQuality[] = ['auto', 'high', 'low'];
 
-export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onError' | 'background' | 'maxPixelRatio'>> &
-  Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onError' | 'background' | 'maxPixelRatio'>;
+export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio'>> &
+  Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio'>;
 
 function oneOf<T extends string>(name: string, value: unknown, allowed: readonly T[]): T {
   if (!allowed.includes(value as T)) {
@@ -52,6 +53,7 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     wheelZoom: oneOf('wheelZoom', input.wheelZoom ?? 'ctrl', WHEELS),
     animate: input.animate ?? 'auto',
     maxPixelRatio,
+    fallback: oneOf('fallback', input.fallback ?? 'qr', FALLBACKS),
     label: input.label ?? 'QR code city',
     doorLabel: input.doorLabel ?? 'Open the door',
     background: input.background,
@@ -59,6 +61,7 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     onIntroStage: input.onIntroStage,
     onViewChange: input.onViewChange,
     onZoomChange: input.onZoomChange,
+    onFallback: input.onFallback,
     onError: input.onError,
   };
 }

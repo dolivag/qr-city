@@ -38,11 +38,12 @@ export const QrCity = defineComponent({
     zoomable: { type: Boolean, default: undefined },
     maxZoom: { type: Number, default: undefined },
     wheelZoom: { type: String as PropType<Wheel>, default: undefined },
+    fallback: { type: String as PropType<'qr' | 'none'>, default: undefined },
     background: { type: String, default: undefined },
     label: { type: String, default: undefined },
     doorLabel: { type: String, default: undefined },
   },
-  emits: ['reveal', 'intro-stage', 'view-change', 'zoom-change', 'error'],
+  emits: ['reveal', 'intro-stage', 'view-change', 'zoom-change', 'fallback', 'error'],
   setup(props, { emit, expose }) {
     const host = ref<HTMLElement | null>(null);
     let controller: QrCityController | null = null;
@@ -68,6 +69,7 @@ export const QrCity = defineComponent({
           onIntroStage: (s) => emit('intro-stage', s),
           onViewChange: (v) => emit('view-change', v),
           onZoomChange: (z) => emit('zoom-change', z),
+          onFallback: (r) => emit('fallback', r),
           onError: report,
         });
       } catch (error) {
@@ -89,7 +91,7 @@ export const QrCity = defineComponent({
     watch(
       () => [
         props.data, props.cityStyle, props.errorCorrection, props.quality, props.interactive, props.animate,
-        props.maxPixelRatio, props.zoomable, props.maxZoom, props.wheelZoom, props.background, props.label,
+        props.maxPixelRatio, props.zoomable, props.maxZoom, props.wheelZoom, props.fallback, props.background, props.label,
         props.doorLabel, props.pauseAtThreshold, props.view,
       ],
       () => {
@@ -100,6 +102,7 @@ export const QrCity = defineComponent({
     const c = () => controller;
     expose({
       get controller() { return controller; },
+      get fallback() { return c()?.fallback ?? false; },
       get view() { return c()?.view ?? 'city'; },
       get zoom() { return c()?.zoom ?? 1; },
       get stage() { return c()?.stage ?? 'done'; },
@@ -113,6 +116,11 @@ export const QrCity = defineComponent({
       zoomBy: (f: number, o?: { at?: { x: number; y: number } }) => c()?.zoomBy(f, o),
       resetZoom: (o?: { immediate?: boolean }) => c()?.resetZoom(o),
       toPNG: (o?: { scale?: number }) => (c() ? (c() as QrCityController).toPNG(o) : Promise.reject(new Error('[qr-city] The city is not mounted.'))),
+      toQrSvg: (o?: Parameters<QrCityController['toQrSvg']>[0]) => {
+        if (!controller) throw new Error('[qr-city] The city is not mounted.');
+        return controller.toQrSvg(o);
+      },
+      toQrPng: (o?: Parameters<QrCityController['toQrPng']>[0]) => (controller ? controller.toQrPng(o) : Promise.reject(new Error('[qr-city] The city is not mounted.'))),
       play: () => c()?.play(),
       pause: () => c()?.pause(),
     });

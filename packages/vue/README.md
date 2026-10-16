@@ -22,7 +22,7 @@ const city = ref<InstanceType<typeof QrCity> | null>(null);
 
 ## Props y eventos
 
-Las mismas opciones que [`createQrCity`](../core): `data`, `city-style`, `intro`, `pause-at-threshold`, `view`, `error-correction`, `quality`, `interactive`, `animate`, `max-pixel-ratio`, `zoomable`, `max-zoom`, `wheel-zoom`, `background`, `label` y `door-label`. **`city-style`** es el estilo de la ciudad (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` o un objeto `QrCityStyle`), porque `style` es el estilo CSS del contenedor.
+Las mismas opciones que [`createQrCity`](../core): `data`, `city-style`, `intro`, `pause-at-threshold`, `view`, `error-correction`, `quality`, `interactive`, `animate`, `max-pixel-ratio`, `zoomable`, `max-zoom`, `wheel-zoom`, `fallback`, `background`, `label` y `door-label`. **`city-style`** es el estilo de la ciudad (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` o un objeto `QrCityStyle`), porque `style` es el estilo CSS del contenedor.
 
 | Evento | Carga |
 | --- | --- |
@@ -30,6 +30,7 @@ Las mismas opciones que [`createQrCity`](../core): `data`, `city-style`, `intro`
 | `intro-stage` | `'door' \| 'entering' \| 'threshold' \| 'flying' \| 'done'` |
 | `view-change` | `'city' \| 'qr'` |
 | `zoom-change` | `number` |
+| `fallback` | `Error`: no hay WebGL y se muestra un QR plano escaneable |
 | `error` | `Error` |
 
 `class` y `style` caen al contenedor, que por defecto es un cuadrado del ancho de su padre.
@@ -40,5 +41,6 @@ Las mismas opciones que [`createQrCity`](../core): `data`, `city-style`, `intro`
 - **Cambios de props:** se aplican en el sitio; la ciudad solo se reconstruye cuando cambian `data`, `city-style`, `error-correction` o `quality`.
 - **`intro`** se fija al crear: si cambia, el componente se reinicia.
 - **Los booleanos ausentes** no valen `false`: no se pasan al núcleo, que aplica sus valores por defecto.
-- **Errores** (sin WebGL, datos inválidos…) llegan al evento `error`; el componente nunca lanza al montarse.
+- **Sin WebGL** se muestra un QR plano escaneable y se emite `fallback` (`fallback="none"` para recibir un `error` en su lugar). **Otros errores** (datos inválidos…) llegan al evento `error`; el componente nunca lanza al montarse.
+- **QR para imprimir:** `toQrSvg()` / `toQrPng()` en la referencia, o `qrToSvg(data)` / `qrToPng(data)` (se exportan).
 - **Referencia del componente:** `controller`, `reveal()`, `setView()`, `toggleView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, `view`, `zoom`, `stage`.

@@ -9,7 +9,10 @@ export type {
   QrCityStyle,
   QrCityStyleId,
   QrCityView,
+  QrImageOptions,
+  QrPngOptions,
 } from '@qr-city/core';
+export { qrToPng, qrToSvg } from '@qr-city/core';
 
 /** Registers the custom element. Safe to call on the server and more than once. */
 export function defineQrCity(tagName = 'qr-city'): void {

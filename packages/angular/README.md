@@ -25,7 +25,7 @@ export class CiudadComponent {
 
 ## Entradas y salidas
 
-Las mismas opciones que [`createQrCity`](../core), como `input()`: `data` (obligatoria), `cityStyle`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label` y `doorLabel`. **`cityStyle`** es el estilo de la ciudad (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` o un objeto `QrCityStyle`).
+Las mismas opciones que [`createQrCity`](../core), como `input()`: `data` (obligatoria), `cityStyle`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `fallback`, `background`, `label` y `doorLabel`. **`cityStyle`** es el estilo de la ciudad (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` o un objeto `QrCityStyle`).
 
 | Salida | Carga |
 | --- | --- |
@@ -33,6 +33,7 @@ Las mismas opciones que [`createQrCity`](../core), como `input()`: `data` (oblig
 | `introStageChange` | `'door' \| 'entering' \| 'threshold' \| 'flying' \| 'done'` |
 | `viewChange` | `'city' \| 'qr'` |
 | `zoomChange` | `number` |
+| `fallbackUsed` | `Error`: no hay WebGL y se muestra un QR plano escaneable |
 | `qrError` | `Error` |
 
 El selector es `qr-city-view` (para no chocar con el Web Component `<qr-city>`). Por defecto es un cuadrado del ancho de su contenedor.
@@ -43,7 +44,8 @@ El selector es `qr-city-view` (para no chocar con el Web Component `<qr-city>`).
 - **Zona:** el bucle de animación corre fuera de `NgZone`, así que no dispara detección de cambios en cada fotograma. Las salidas se emiten dentro de la zona.
 - **Cambios de entradas:** se aplican en el sitio; la ciudad solo se reconstruye cuando cambian `data`, `cityStyle`, `errorCorrection` o `quality`.
 - **`intro`** se fija al crear: si cambia, el componente se reinicia.
-- **Errores** (sin WebGL, datos inválidos…) llegan a `qrError`; en modo desarrollo también se escriben en la consola.
+- **Sin WebGL** se muestra un QR plano escaneable y se emite `fallbackUsed` (`fallback="none"` para recibir un `qrError` en su lugar). **Otros errores** (datos inválidos…) llegan a `qrError`; en modo desarrollo también se escriben en la consola.
+- **QR para imprimir:** `toQrSvg()` / `toQrPng()` en el componente, o `qrToSvg(data)` / `qrToPng(data)` (se exportan).
 - **Métodos del componente:** `reveal()`, `setView()`, `toggleView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, y `controller`, `stage`, `currentView`, `zoom`.
 
 ## Publicación

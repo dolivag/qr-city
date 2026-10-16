@@ -59,6 +59,8 @@ export class QrCityComponent {
   readonly zoomable = input<boolean>();
   readonly maxZoom = input<number>();
   readonly wheelZoom = input<'ctrl' | 'always' | 'off'>();
+  /** `'qr'` (default) shows a plain QR when WebGL is missing; `'none'` reports an error instead. */
+  readonly fallback = input<'qr' | 'none'>();
   readonly background = input<string>();
   readonly label = input<string>();
   readonly doorLabel = input<string>();
@@ -68,6 +70,8 @@ export class QrCityComponent {
   readonly introStageChange = output<QrCityIntroStage>();
   readonly viewChange = output<QrCityView>();
   readonly zoomChange = output<number>();
+  /** WebGL is not available: a plain QR is shown instead of the city. */
+  readonly fallbackUsed = output<Error>();
   /** Failures: no WebGL, invalid data, a lost context… */
   readonly qrError = output<Error>();
 
@@ -91,6 +95,7 @@ export class QrCityComponent {
       zoomable: this.zoomable(),
       maxZoom: this.maxZoom(),
       wheelZoom: this.wheelZoom(),
+      fallback: this.fallback(),
       background: this.background(),
       label: this.label(),
       doorLabel: this.doorLabel(),
@@ -104,6 +109,8 @@ export class QrCityComponent {
   get stage(): QrCityIntroStage { return this.instance?.stage ?? 'done'; }
   get currentView(): QrCityView { return this.instance?.view ?? 'city'; }
   get zoom(): number { return this.instance?.zoom ?? 1; }
+  /** `true` while a plain QR is shown because WebGL is not available. */
+  get usingFallback(): boolean { return this.instance?.fallback ?? false; }
 
   constructor() {
     // Browser only: never runs during server-side rendering.
@@ -137,6 +144,14 @@ export class QrCityComponent {
   setZoom(zoom: number, opts?: { immediate?: boolean; at?: { x: number; y: number } }): void { this.instance?.setZoom(zoom, opts); }
   zoomBy(factor: number, opts?: { at?: { x: number; y: number } }): void { this.instance?.zoomBy(factor, opts); }
   resetZoom(opts?: { immediate?: boolean }): void { this.instance?.resetZoom(opts); }
+  /** The current code as a plain, print-ready SVG. */
+  toQrSvg(opts?: Parameters<QrCityController['toQrSvg']>[0]): string {
+    if (!this.instance) throw new Error('[qr-city] The city is not mounted.');
+    return this.instance.toQrSvg(opts);
+  }
+  toQrPng(opts?: Parameters<QrCityController['toQrPng']>[0]): Promise<Blob> {
+    return this.instance ? this.instance.toQrPng(opts) : Promise.reject(new Error('[qr-city] The city is not mounted.'));
+  }
   play(): void { this.instance?.play(); }
   pause(): void { this.instance?.pause(); }
   toPNG(opts?: { scale?: number }): Promise<Blob> {
@@ -156,6 +171,7 @@ export class QrCityComponent {
           onIntroStage: (s) => inZone(() => this.introStageChange.emit(s))(),
           onViewChange: (v) => inZone(() => this.viewChange.emit(v))(),
           onZoomChange: (z) => inZone(() => this.zoomChange.emit(z))(),
+          onFallback: (r) => inZone(() => this.fallbackUsed.emit(r))(),
           onError: (e) => this.report(e),
         } as QrCityOptions),
       );

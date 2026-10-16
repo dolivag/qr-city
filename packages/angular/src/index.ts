@@ -10,5 +10,7 @@ export type {
   QrCityStyle,
   QrCityStyleId,
   QrCityView,
+  QrImageOptions,
+  QrPngOptions,
 } from '@qr-city/core';
-export { styles } from '@qr-city/core';
+export { qrToPng, qrToSvg, styles } from '@qr-city/core';

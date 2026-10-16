@@ -33,16 +33,34 @@ const city = createQrCity(hostElement, {
 | `animate` | `'auto'` | `'auto'` respeta `prefers-reduced-motion`. |
 | `maxPixelRatio` | 2 (1 en `low`) | |
 | `background` | cielo del estilo | Color CSS o `'transparent'`. |
+| `fallback` | `'qr'` | Qué hacer si no hay WebGL: `'qr'` muestra un QR plano escaneable con los colores del estilo; `'none'` lanza un error. |
 | `label` / `doorLabel` | `'QR code city'` / `'Open the door'` | Nombre accesible del lienzo (y mientras la puerta espera). |
-| `onReveal` / `onIntroStage` / `onViewChange` / `onZoomChange` / `onError` | — | `onReveal` se dispara cuando la ciudad está en pantalla: al terminar de construirse o, con `intro: 'door'`, al acabar el vuelo (y tras cada reconstrucción). `onIntroStage` recibe cada etapa. |
+| `onReveal` / `onIntroStage` / `onViewChange` / `onZoomChange` / `onFallback` / `onError` | — | `onReveal` se dispara cuando la ciudad está en pantalla: al terminar de construirse o, con `intro: 'door'`, al acabar el vuelo (y tras cada reconstrucción). `onIntroStage` recibe cada etapa. |
 
 ## Controlador (`QrCityController`)
 
-`zoom` · `setZoom(z, { immediate?, at? })` · `zoomBy(f)` · `resetZoom()` · `stage` · `openDoor()` · `continueIntro()` · `skipIntro()` · `reveal()` · `setView(view, { immediate? })` · `toggleView()` · `setStyle(style)` · `update(partial)` · `toPNG({ scale? })` · `play()` / `pause()` · `resize()` · `dispose()` · `canvas` · `view`.
+`fallback` · `toQrSvg(opts?)` · `toQrPng(opts?)` · `zoom` · `setZoom(z, { immediate?, at? })` · `zoomBy(f)` · `resetZoom()` · `stage` · `openDoor()` · `continueIntro()` · `skipIntro()` · `reveal()` · `setView(view, { immediate? })` · `toggleView()` · `setStyle(style)` · `update(partial)` · `toPNG({ scale? })` · `play()` / `pause()` · `resize()` · `dispose()` · `canvas` · `view`.
 
 `update` solo reconstruye la ciudad si cambian `data`, `style`, `errorCorrection` o `quality`. El zoom no pierde nitidez: la textura del suelo se pinta a alta resolución y la sombra del sol se ajusta a lo que se ve. `update` con otros `data`/`style` restablece el zoom.
 
 `dispose()` es idempotente y libera geometrías, texturas, materiales, listeners, el bucle y el contexto WebGL.
+
+## QR plano para imprimir y respaldo sin WebGL
+
+La ciudad es el atractivo, pero a veces lo que se necesita es el código. Para eso:
+
+```ts
+import { qrToSvg, qrToPng } from '@qr-city/core';
+
+const svg = qrToSvg('https://tu-web.dev');                 // string SVG: negro sobre blanco, con quiet zone de 4 módulos
+const png = await qrToPng('https://tu-web.dev', { size: 1024 }); // Blob PNG (solo navegador)
+
+city.toQrSvg({ dark: '#111', margin: 4 });                 // el código actual de la ciudad
+```
+
+`qrToSvg` no necesita DOM ni WebGL: sirve en el servidor. Opciones: `errorCorrection`, `margin` (módulos), `dark`, `light` (colores CSS simples) y `title`.
+
+**Sin WebGL** (navegador antiguo, GPU bloqueada, contexto perdido) `createQrCity` ya no lanza: muestra ese mismo QR plano, con el color de tejado y de suelo del estilo, y devuelve un controlador con `fallback: true` y `canvas: null` en el que los métodos solo 3D son inofensivos y `update`, `toQrSvg`, `toQrPng` y `toPNG` siguen funcionando. Se avisa con `onFallback` (o un `console.warn` si no la defines) y se completa la intro (`onIntroStage('done')`, `onReveal`) para que tu interfaz no se quede esperando. Si el contexto WebGL se pierde y no vuelve en 3 s, el QR plano se superpone al lienzo. Con `fallback: 'none'` se lanza el error de siempre.
 
 ## Intro de la puerta
 

@@ -25,6 +25,7 @@ Si prefieres registrarlo tú: `import { defineQrCity } from '@qr-city/element'; 
 | `zoomable` | `zoomable` | `zoomable="false"` desactiva el zoom y el desplazamiento. |
 | `max-zoom` | `maxZoom` | Zoom máximo (8 por defecto). |
 | `wheel-zoom` | `wheelZoom` | `ctrl` (por defecto) \| `always` \| `off`. |
+| `fallback` | `fallback` | `qr` (por defecto): sin WebGL muestra un QR plano escaneable. `none`: emite `qr-city-error`. |
 | `view` | `view` | `city` \| `qr`. |
 | `error-correction` | `errorCorrection` | `L` `M` `Q` `H`. |
 | `quality` | `quality` | `auto` `high` `low`. |
@@ -33,10 +34,10 @@ Si prefieres registrarlo tú: `import { defineQrCity } from '@qr-city/element'; 
 | `background` | `background` | Color CSS o `transparent`. |
 | `label` | `label` | Nombre accesible. |
 
-Métodos: `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `reveal()`, `setView()`, `toggleView()`, `toPNG()`, `play()`, `pause()`, y `controller` (el controlador de `@qr-city/core`).
+Métodos: `toQrSvg()`, `toQrPng()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `reveal()`, `setView()`, `toggleView()`, `toPNG()`, `play()`, `pause()`, y `controller` (el controlador de `@qr-city/core`).
 
-Propiedades de solo lectura `stage` (etapa de la intro) y `zoom`.
+Propiedades de solo lectura `stage` (etapa de la intro), `zoom` y `usingFallback`. Las funciones `qrToSvg` y `qrToPng` también se exportan.
 
-Eventos (burbujean y atraviesan el shadow DOM): `qr-city-reveal`, `qr-city-introstage` (`detail.stage`), `qr-city-zoomchange` (`detail.zoom`), `qr-city-viewchange` (`detail.view`), `qr-city-error` (`detail.error`).
+Eventos (burbujean y atraviesan el shadow DOM): `qr-city-reveal`, `qr-city-introstage` (`detail.stage`), `qr-city-zoomchange` (`detail.zoom`), `qr-city-fallback` (`detail.reason`: no hay WebGL y se muestra el QR plano), `qr-city-viewchange` (`detail.view`), `qr-city-error` (`detail.error`).
 
 El elemento mide por defecto un cuadrado del ancho de su contenedor; ponle tamaño con CSS. Se pausa fuera de pantalla (`IntersectionObserver`) y libera todo al desconectarse del DOM.

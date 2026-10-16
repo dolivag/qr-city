@@ -48,6 +48,8 @@ const cancel = $('cancel');
 const toggle = $<HTMLButtonElement>('toggle');
 const again = $<HTMLButtonElement>('again');
 const png = $<HTMLButtonElement>('png');
+const qrSvg = $<HTMLButtonElement>('qr-svg');
+const qrPng = $<HTMLButtonElement>('qr-png');
 const zoomIn = $<HTMLButtonElement>('zoom-in');
 const zoomOut = $<HTMLButtonElement>('zoom-out');
 const zoomReset = $<HTMLButtonElement>('zoom-reset');
@@ -64,7 +66,9 @@ function sync() {
   gate.classList.toggle('over', overCity);
   cancel.hidden = !overCity;
   const ready = stage === 'done' && !overCity;
-  for (const b of [toggle, again, png, zoomIn, zoomOut, zoomReset]) b.disabled = !ready;
+  const flat = city.usingFallback; // no WebGL: only the plain QR exists
+  for (const b of [again, png, qrSvg, qrPng]) b.disabled = !ready;
+  for (const b of [toggle, zoomIn, zoomOut, zoomReset]) b.disabled = !ready || flat;
   zoomValue.textContent = `${Number(city.zoom.toFixed(1))}×`;
   toggle.textContent = city.view === 'qr' ? 'Ver ciudad' : 'Revelar QR';
   if (!gate.hidden) setTimeout(() => input.focus({ preventScroll: true }), 350);
@@ -76,6 +80,10 @@ city.addEventListener('qr-city-introstage', (e) => {
 });
 city.addEventListener('qr-city-viewchange', sync);
 city.addEventListener('qr-city-zoomchange', sync);
+city.addEventListener('qr-city-fallback', () => {
+  msg.textContent = 'Tu navegador no admite WebGL, así que te mostramos el código QR sin la ciudad. Sigue siendo escaneable.';
+  sync();
+});
 city.addEventListener('qr-city-error', (e) => {
   msg.textContent = (e as CustomEvent<{ error: Error }>).detail.error.message;
 });
@@ -107,18 +115,28 @@ again.addEventListener('click', () => { overCity = true; sync(); });
 cancel.addEventListener('click', () => { overCity = false; err.textContent = ''; sync(); });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && overCity) cancel.click(); });
 
-png.addEventListener('click', async () => {
+function download(blob: Blob, name: string) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function run(action: () => Promise<void> | void) {
   try {
-    city.setView('qr', { immediate: true });
-    const blob = await city.toPNG({ scale: 2 });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'ciudad-qr.png';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    await action();
   } catch (error) {
     msg.textContent = (error as Error).message;
   }
-});
+}
+
+png.addEventListener('click', () => run(async () => {
+  city.setView('qr', { immediate: true });
+  download(await city.toPNG({ scale: 2 }), 'ciudad-qr.png');
+}));
+// The plain, print-ready code (black on white, with its quiet zone), not a picture of the city.
+qrSvg.addEventListener('click', () => run(() => download(new Blob([city.toQrSvg({ title: 'Código QR' })], { type: 'image/svg+xml' }), 'qr.svg')));
+qrPng.addEventListener('click', () => run(async () => download(await city.toQrPng({ size: 1024 }), 'qr.png')));
 
 sync();

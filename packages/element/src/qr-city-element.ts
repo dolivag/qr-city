@@ -17,7 +17,7 @@ const Base: typeof HTMLElement =
 
 const ATTRIBUTES = [
   'data', 'style-name', 'intro', 'view', 'error-correction', 'quality',
-  'animate', 'interactive', 'background', 'label', 'pause-at-threshold', 'door-label', 'zoomable', 'max-zoom', 'wheel-zoom',
+  'animate', 'interactive', 'background', 'label', 'pause-at-threshold', 'door-label', 'zoomable', 'max-zoom', 'wheel-zoom', 'fallback',
 ] as const;
 
 const TEMPLATE_CSS = `
@@ -31,6 +31,7 @@ export interface QrCityEventMap {
   'qr-city-viewchange': CustomEvent<{ view: QrCityView }>;
   'qr-city-introstage': CustomEvent<{ stage: QrCityIntroStage }>;
   'qr-city-zoomchange': CustomEvent<{ zoom: number }>;
+  'qr-city-fallback': CustomEvent<{ reason: Error }>;
   'qr-city-error': CustomEvent<{ error: Error }>;
 }
 
@@ -40,7 +41,8 @@ export interface QrCityEventMap {
  * Attributes: `data`, `style-name`, `intro`, `view`, `error-correction`, `quality`,
  * `animate` (`auto` | `true` | `false`; property `animated`), `interactive` (`false` disables clicks), `background`, `label`,
  * `pause-at-threshold` (with `intro="door"`: wait at the white screen until `continueIntro()`), `door-label`,
- * `zoomable` (`false` disables zoom and pan), `max-zoom`, `wheel-zoom` (`ctrl` | `always` | `off`).
+ * `zoomable` (`false` disables zoom and pan), `max-zoom`, `wheel-zoom` (`ctrl` | `always` | `off`),
+ * `fallback` (`qr` shows a plain QR when WebGL is missing; `none` reports an error instead).
  * Size it with CSS (default: a square as wide as its container).
  */
 export class QrCityElement extends Base {
@@ -112,6 +114,12 @@ export class QrCityElement extends Base {
   get wheelZoom(): 'ctrl' | 'always' | 'off' | undefined { return this.#opts.wheelZoom; }
   set wheelZoom(v: 'ctrl' | 'always' | 'off' | undefined) { this.#set({ wheelZoom: v }); }
 
+  get fallback(): 'qr' | 'none' | undefined { return this.#opts.fallback; }
+  set fallback(v: 'qr' | 'none' | undefined) { this.#set({ fallback: v }); }
+
+  /** `true` while a plain QR is shown because WebGL is not available. */
+  get usingFallback(): boolean { return this.#controller?.fallback ?? false; }
+
   /** Current zoom (1 = the whole city in view). */
   get zoom(): number { return this.#controller?.zoom ?? 1; }
 
@@ -128,6 +136,15 @@ export class QrCityElement extends Base {
   setZoom(zoom: number, opts?: { immediate?: boolean; at?: { x: number; y: number } }): void { this.#controller?.setZoom(zoom, opts); }
   zoomBy(factor: number, opts?: { at?: { x: number; y: number } }): void { this.#controller?.zoomBy(factor, opts); }
   resetZoom(opts?: { immediate?: boolean }): void { this.#controller?.resetZoom(opts); }
+  /** The current code as a plain, print-ready SVG. */
+  toQrSvg(opts?: Parameters<QrCityController['toQrSvg']>[0]): string {
+    if (!this.#controller) throw new Error('[qr-city] The element is not rendering (no valid `data` or not connected).');
+    return this.#controller.toQrSvg(opts);
+  }
+  toQrPng(opts?: Parameters<QrCityController['toQrPng']>[0]): Promise<Blob> {
+    if (!this.#controller) return Promise.reject(new Error('[qr-city] The element is not rendering (no valid `data` or not connected).'));
+    return this.#controller.toQrPng(opts);
+  }
   reveal(): void { this.#controller?.reveal(); }
   setView(view: QrCityView, opts?: { immediate?: boolean }): void { this.#controller?.setView(view, opts); }
   toggleView(): void { this.#controller?.toggleView(); }
@@ -140,7 +157,7 @@ export class QrCityElement extends Base {
 
   // ---- Lifecycle -------------------------------------------------------
   connectedCallback(): void {
-    for (const p of ['data', 'cityStyle', 'intro', 'view', 'errorCorrection', 'quality', 'animated', 'interactive', 'background', 'label', 'pauseAtThreshold', 'doorLabel', 'zoomable', 'maxZoom', 'wheelZoom']) {
+    for (const p of ['data', 'cityStyle', 'intro', 'view', 'errorCorrection', 'quality', 'animated', 'interactive', 'background', 'label', 'pauseAtThreshold', 'doorLabel', 'zoomable', 'maxZoom', 'wheelZoom', 'fallback']) {
       this.#upgrade(p);
     }
     for (const name of ATTRIBUTES) this.#readAttribute(name, this.getAttribute(name));
@@ -194,6 +211,7 @@ export class QrCityElement extends Base {
       case 'zoomable': o.zoomable = v === undefined ? undefined : v !== 'false'; break;
       case 'max-zoom': o.maxZoom = v === undefined ? undefined : Number(v); break;
       case 'wheel-zoom': o.wheelZoom = v; break;
+      case 'fallback': o.fallback = v; break;
     }
   }
 
@@ -232,6 +250,7 @@ export class QrCityElement extends Base {
         onReveal: () => this.#emit('qr-city-reveal', undefined),
         onIntroStage: (stage) => this.#emit('qr-city-introstage', { stage }),
         onZoomChange: (zoom) => this.#emit('qr-city-zoomchange', { zoom }),
+        onFallback: (reason) => this.#emit('qr-city-fallback', { reason }),
         onViewChange: (view) => this.#emit('qr-city-viewchange', { view }),
         onError: (error) => this.#emit('qr-city-error', { error }),
       });
