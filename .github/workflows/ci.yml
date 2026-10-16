@@ -49,3 +49,34 @@ jobs:
 
       - name: Build
         run: npx nx run-many -t build
+
+  # Que el código QR se lea de verdad: renderiza la vista cenital en Chromium (WebGL por software)
+  # y la decodifica con jsQR, para cada estilo y varios textos.
+  escaneo:
+    name: Escaneabilidad del QR
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas de escaneo
+        run: npx nx run e2e:e2e
+
+      - name: Informe de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-escaneo
+          path: e2e/playwright-report
+          retention-days: 7

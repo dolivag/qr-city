@@ -57,10 +57,21 @@ npm run lint && npm run typecheck && npm test && npm run build
 
 Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest. La CI (GitHub Actions) ejecuta `lint`, `typecheck`, `test` y `build` en cada PR y en cada push a `master`; los mismos comandos funcionan en local.
 
+### Test de escaneabilidad
+
+El objetivo de la librería es que el QR se lea. [`e2e/`](e2e) renderiza la vista cenital en Chromium (WebGL por software), la decodifica con [jsQR](https://github.com/cozmo/jsQR) y comprueba que devuelve el texto original, para cada estilo y varios textos (URL corta, URL larga y UTF-8), tanto a resolución completa como reducida como lo vería una cámara. Un test comprueba además que un estilo con tejados claros **no** se lee, para asegurar que la prueba puede fallar.
+
+```bash
+npx playwright install chromium   # una vez
+npx nx run e2e:e2e
+```
+
+Si ya tienes Chromium instalado, apunta a él con `PW_CHROMIUM_PATH=/ruta/a/chromium`. Un fallo sube el informe de Playwright como artefacto de la CI.
+
 ## Notas de diseño
 
 - **SSR-safe:** importar los paquetes no toca `window`/`document`; solo `createQrCity` y el Web Component necesitan DOM + WebGL.
-- **Invariante de escaneabilidad:** tejados con `MeshBasicMaterial` oscuro y plano (sin iluminación) sobre suelo claro, con *quiet zone* de 5–6 módulos.
+- **Invariante de escaneabilidad:** tejados con `MeshBasicMaterial` oscuro y plano (sin iluminación) sobre suelo claro, con *quiet zone* de 5–6 módulos. En la vista cenital los edificios crecen hasta llenar su módulo (y un poco más), para que no queden rendijas entre tejados vecinos que confundan a los lectores.
 - **Color:** se renderiza en espacio lineal sin conversión sRGB y las luces se escalan ×π, para conservar el aspecto del prototipo original (three r128) con three ≥ r155.
 - **Accesibilidad:** el lienzo es un botón (teclado: Enter/Espacio) con `aria-label`; respeta `prefers-reduced-motion`.
 

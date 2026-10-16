@@ -35,6 +35,10 @@ import { createVegetation } from './vegetation';
 /** three ≥ r155 dropped the legacy ×π light scaling; this keeps the look of the original r128 prototype. */
 const LIGHT_SCALE = Math.PI;
 const MAX_GROUND_TEXTURE = 4096;
+/** Side of a building as a fraction of its module while the city is seen from the side. */
+const BUILDING_FOOTPRINT = 0.96;
+/** Side of a building as a fraction of its module in the top-down view (slightly over 1, so roofs overlap). */
+const TOP_FOOTPRINT = 1.08;
 
 export interface CityFrame {
   now: number;
@@ -478,9 +482,12 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   function update({ now, dt, t, reduce, bob = true }: CityFrame) {
     if (Number.isNaN(born)) born = options.rise === false ? now - 1e9 : now;
     const el = (now - born) / 1000;
+    // In the top-down view the rooftops grow to fill their whole module: no hairline gaps between
+    // neighbouring roofs, which is what scanners with sharp, high-resolution cameras trip over.
+    const fill = 1 + (TOP_FOOTPRINT / BUILDING_FOOTPRINT - 1) * smooth(0.4, 1, t);
     for (const b of buildings) {
       const k = reduce ? 1 : clamp01((el - (b.userData.delay as number)) / 0.9);
-      b.scale.y = Math.max(0.001, 1 - Math.pow(1 - k, 3));
+      b.scale.set(fill, Math.max(0.001, 1 - Math.pow(1 - k, 3)), fill);
     }
     const vis = 1 - smooth(0.05, 0.55, t);
     decor.visible = vis > 0.01;
