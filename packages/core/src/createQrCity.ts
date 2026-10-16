@@ -10,6 +10,7 @@ import type { FlatQr } from './fallback';
 import { qrToPng, qrToSvg } from './qr/image';
 import { createMatrix } from './qr/matrix';
 import { resolveQuality } from './runtime/quality';
+import { warnIfUltraMissing } from './scene/ultraKit';
 import type { QualityProfile } from './runtime/quality';
 import { col } from './scene/color';
 import { createCity } from './scene/city';
@@ -49,6 +50,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   let opts: ResolvedOptions = resolveOptions(raw);
   let style: QrCityStyle = resolveStyle(opts.style);
   let profile: QualityProfile = resolveQuality(opts.quality);
+  warnIfUltraMissing(profile.level);
   createMatrix(opts.data, opts.errorCorrection); // fail fast if the data cannot be encoded
   const intro = opts.intro; // fixed at creation
 
@@ -575,6 +577,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     const styleChanged = nextStyle !== style || nextProfile !== profile;
     style = nextStyle;
     profile = nextProfile;
+    warnIfUltraMissing(profile.level);
     raw = merged;
     if (needsRebuild) {
       try {

@@ -28,7 +28,7 @@ To register it yourself: `import { defineQrCity } from '@qr-city/element'; defin
 | `fallback` | `fallback` | `qr` (default): without WebGL shows a flat, scannable QR. `none`: fires `qr-city-error`. |
 | `view` | `view` | `city` \| `qr`. |
 | `error-correction` | `errorCorrection` | `L` `M` `Q` `H`. |
-| `quality` | `quality` | `auto` `high` `low`. |
+| `quality` | `quality` | `auto` `high` `low` `ultra` (see [`@qr-city/core`](../core#ultra-quality)). |
 | `animate` | `animated` | `auto` \| `true` \| `false`. |
 | `interactive` | `interactive` | `interactive="false"` disables click. |
 | `background` | `background` | CSS colour or `transparent`. |

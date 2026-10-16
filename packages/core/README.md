@@ -27,7 +27,7 @@ const city = createQrCity(hostElement, {
 | `pauseAtThreshold` | `false` | With `intro: 'door'`: stops on the white screen after crossing the door until you call `continueIntro()` (a good place for a form). |
 | `view` | `'city'` | Initial view: `'city'` (isometric) or `'qr'` (top-down). |
 | `errorCorrection` | `'M'` | `'L' \| 'M' \| 'Q' \| 'H'`. |
-| `quality` | `'auto'` | `'low'` disables shadows, lowers the pixel ratio and reduces cars/pedestrians/trees. `auto` picks `low` on small touch devices. Antialiasing is fixed at creation. |
+| `quality` | `'auto'` | `'low'` disables shadows, lowers the pixel ratio, simplifies trees and cars and reduces their number. `'high'` adds fuller trees and rims/mirrors on cars. `'ultra'` adds denser traffic, 4K shadows and, if you `import '@qr-city/core/ultra'`, extra modelled parts (see below). `auto` picks `low` on small touch devices and `high` elsewhere. Antialiasing is fixed at creation. |
 | `interactive` | `true` | Click / Enter / Space toggles the view. |
 | `zoomable` / `maxZoom` / `wheelZoom` | `true` / `8` / `'ctrl'` | Zoom and pan: pinch, drag, `+` `−` `0` and arrow keys while the canvas is focused. `wheelZoom`: `'ctrl'` (Ctrl/⌘ + wheel and trackpad pinch; the plain wheel still scrolls the page), `'always'` or `'off'`. |
 | `animate` | `'auto'` | `'auto'` respects `prefers-reduced-motion`. |
@@ -84,6 +84,19 @@ The door, the lobby and the flight are coloured with `style.door` (see `QrCityDo
 ## Styles
 
 Four styles are included (`styles.moderna`, `styles.costera`, `styles.ciberpunk`, `styles.nevada`), each with its own vegetation, traffic and wildlife: palms, boats and gulls in *costera*; neon, grid and drones in *ciberpunk*; pines and snow in *nevada*.
+
+## Ultra quality
+
+`quality: 'ultra'` is for large screens and showcases. It raises the shadow and texture resolution and the number of cars, pedestrians and trees. The extra modelled details (bumpers, grilles, plates, antennas and pillars on cars; root flares on trees) live in a separate entry point so apps that never ask for `ultra` do not ship them (under 1 kB gzip):
+
+```ts
+import '@qr-city/core/ultra'; // registers the extra parts; it has no exports
+import { createQrCity } from '@qr-city/core';
+
+createQrCity(host, { data: 'https://your-site.dev', quality: 'ultra' });
+```
+
+You can also load it lazily: `await import('@qr-city/core/ultra')` before creating the city. Without the import, `ultra` still works as `high` with denser traffic and logs one warning.
 
 ## Custom styles
 

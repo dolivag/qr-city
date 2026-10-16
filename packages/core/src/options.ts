@@ -7,7 +7,7 @@ const VIEWS: readonly QrCityView[] = ['city', 'qr'];
 const ECCS: readonly QrCityEcc[] = ['L', 'M', 'Q', 'H'];
 const WHEELS: readonly NonNullable<QrCityOptions['wheelZoom']>[] = ['ctrl', 'always', 'off'];
 const FALLBACKS: readonly NonNullable<QrCityOptions['fallback']>[] = ['qr', 'none'];
-const QUALITIES: readonly QrCityQuality[] = ['auto', 'high', 'low'];
+const QUALITIES: readonly QrCityQuality[] = ['auto', 'high', 'low', 'ultra'];
 
 export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio'>> &
   Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio'>;
