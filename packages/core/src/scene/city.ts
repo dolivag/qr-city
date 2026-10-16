@@ -16,6 +16,7 @@ import {
   ShadowMaterial,
   SphereGeometry,
   Color,
+  Vector3,
 } from 'three';
 import type { MeshBasicMaterialParameters, MeshLambertMaterialParameters ,
   BufferGeometry,
@@ -27,7 +28,9 @@ import type { QrCityStyle } from '../types';
 import { clamp01, pick, rand, ringPoint, smooth } from '../util/math';
 import { CAR_KIND_NAMES, createCarKit } from './cars';
 import { col } from './color';
+import { createDoorKit } from './door';
 import { blobGeo, roundedPrism } from './geometry';
+import { moderna } from '../styles/moderna';
 
 /** three ≥ r155 dropped the legacy ×π light scaling; this keeps the look of the original r128 prototype. */
 const LIGHT_SCALE = Math.PI;
@@ -39,6 +42,22 @@ export interface CityFrame {
   /** View progress: 0 isometric … 1 top-down. */
   t: number;
   reduce: boolean;
+  /** Gentle up-and-down floating of the whole city. Default `true`. */
+  bob?: boolean;
+}
+
+/** The small door built into one of the buildings, where the door intro comes out. */
+export interface DoorInfo {
+  /** Unit vector pointing out of the facade. */
+  d: Vector3;
+  /** Center of the door on the facade. */
+  facade: Vector3;
+  hinge: Group;
+}
+
+export interface CityOptions {
+  /** Buildings rise from the ground. When `false` the city is complete from the first frame. */
+  rise?: boolean;
 }
 
 export interface City {
@@ -48,6 +67,7 @@ export interface City {
   riseDuration: number;
   /** Half the side of the QR area plus its quiet zone, in modules. */
   size: number;
+  door: DoorInfo | null;
   update(frame: CityFrame): void;
   dispose(): void;
 }
@@ -59,7 +79,7 @@ interface Flock { group: Group; birds: Object3D[]; R: number; h: number; speed: 
 interface Run { axis: 'x' | 'z'; k: number; a: number; b: number; edge: boolean }
 interface Bird extends Object3D { userData: { pl: Object3D; pr: Object3D; phase: number; flapSpeed: number } }
 
-export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityProfile): City {
+export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityProfile, options: CityOptions = {}): City {
   const tracker = new ResourceTracker();
   const S = style;
   const P = style.palette;
@@ -228,6 +248,23 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   const mastGeo = geo(new CylinderGeometry(0.025, 0.035, 1, 8).translate(0, 0.5, 0));
 
   const inFinder = (r: number, c: number) => (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+
+  // The door building: a dark module outside the finder patterns with two free modules in front,
+  // facing +x or +z so it is visible from the final isometric camera.
+  const isLight = (r: number, c: number) => !qr.isDark(r, c);
+  let doorCell: { r: number; c: number; dr: number; dc: number } | null = null;
+  let bestScore = 1e9;
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (!qr.isDark(r, c) || inFinder(r, c)) continue;
+      for (const [dr, dc] of [[0, 1], [1, 0]]) {
+        if (!isLight(r + dr, c + dc) || !isLight(r + 2 * dr, c + 2 * dc)) continue;
+        const score = Math.hypot(toW(c), toW(r)) + rand(r, c) * 2;
+        if (score < bestScore) { bestScore = score; doorCell = { r, c, dr, dc }; }
+      }
+    }
+  }
+
   const buildings: Group[] = [];
   let maxDelay = 0;
   for (let r = 0; r < n; r++) {
@@ -239,8 +276,10 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       const rr = rand(r, c);
       const grp = new Group();
       grp.position.set(x, 0, z);
+      const isDoor = !!doorCell && doorCell.r === r && doorCell.c === c;
       let kind: 'sky' | 'house' | 'mid';
-      if (inFinder(r, c)) kind = 'sky';
+      if (isDoor) kind = 'mid';
+      else if (inFinder(r, c)) kind = 'sky';
       else if (rr > S.buildings.skyBias + dist * 0.6) kind = 'sky';
       else if (rr < S.buildings.houseBias + dist * 0.55) kind = 'house';
       else kind = 'mid';
@@ -257,7 +296,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
         let h = kind === 'sky'
           ? (inFinder(r, c) ? 7 + rand(r, c * 2) * 2 : 5.5 + Math.pow(rr, 1.5) * 9 * (1 - dist * 0.5))
           : 1.3 + rand(c * 2, r) * 2.6;
-        h = Math.max(0.9, h * S.buildings.heightMul);
+        h = Math.max(isDoor ? 2.6 : 0.9, h * S.buildings.heightMul);
         const floors = Math.max(2, Math.round(h / 0.42));
         const body = new Mesh(towerGeo(floors), [roofMat, pick(towerMats, rand(c, r))]);
         body.scale.y = h;
@@ -277,12 +316,83 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
         }
       }
       grp.traverse((o) => { o.castShadow = true; });
-      grp.userData.delay = Math.hypot(x, z) * 0.03 + rand(r * 3, c) * 0.2;
+      grp.userData.delay = isDoor ? -100 : Math.hypot(x, z) * 0.03 + rand(r * 3, c) * 0.2;
       maxDelay = Math.max(maxDelay, grp.userData.delay as number);
-      grp.scale.y = 0.001;
+      grp.scale.y = isDoor ? 1 : 0.001;
       city.add(grp);
       buildings.push(grp);
     }
+  }
+
+  // ---- The same door, to scale, on the ground floor of that building, with its lobby
+  let doorInfo: DoorInfo | null = null;
+  if (doorCell) {
+    const T = S.door ?? (moderna.door as NonNullable<typeof moderna.door>);
+    const dk = createDoorKit(tracker, T, profile.detail);
+    const d = new Vector3(doorCell.dc, 0, doorCell.dr);
+    const B = new Vector3(toW(doorCell.c), 0, toW(doorCell.r));
+    const facade = B.clone().addScaledVector(d, 0.48);
+    const rotY = Math.atan2(d.x, d.z);
+
+    const rig = new Group();
+    rig.position.copy(facade).addScaledVector(d, 0.005);
+    rig.rotation.y = rotY;
+    rig.scale.setScalar(0.17);
+    const cityDoor = dk.buildDoor();
+    rig.add(cityDoor.group);
+    const warm = new Mesh(dk.geo(new PlaneGeometry(1.26, 2.5)), dk.basic(T.warm));
+    warm.position.set(0, 1.25, 0);
+    rig.add(warm);
+    const arm = new Mesh(dk.geo(roundedPrism(0.12, 0.3, 0.04)), dk.mats.dark);
+    arm.scale.y = 0.08;
+    arm.position.set(1.08, 1.95, 0.12);
+    rig.add(arm);
+    const lampG = new Mesh(dk.geo(new SphereGeometry(0.11, 16, 12)), dk.basic(T.glow));
+    lampG.position.set(1.08, 1.86, 0.26);
+    rig.add(lampG);
+    city.add(rig);
+
+    // Lobby: the building only paints its outer face, so the inside is built from double-sided planes
+    const lob = new Group();
+    lob.position.copy(B);
+    lob.rotation.y = rotY;
+    const wallM = dk.lambert(T.background);
+    wallM.side = DoubleSide;
+    const floorM = dk.lambert(T.lobbyFloor);
+    floorM.side = DoubleSide;
+    const H = 0.6, I = 0.44, F = 0.465, dw = 0.107, dh = 0.44;
+    const plane = (w: number, hh: number, x: number, y: number, z: number, ry: number, rx: number, m: MeshLambertMaterial = wallM) => {
+      const p = new Mesh(dk.geo(new PlaneGeometry(w, hh)), m);
+      p.position.set(x, y, z);
+      p.rotation.set(rx, ry, 0);
+      lob.add(p);
+    };
+    plane(2 * I, H, 0, H / 2, -I, 0, 0);
+    plane(F + I, H, -I, H / 2, (F - I) / 2, Math.PI / 2, 0);
+    plane(F + I, H, I, H / 2, (F - I) / 2, Math.PI / 2, 0);
+    plane(2 * I, F + I, 0, 0.004, (F - I) / 2, 0, -Math.PI / 2, floorM);
+    plane(2 * I, F + I, 0, H, (F - I) / 2, 0, -Math.PI / 2);
+    plane(I - dw, H, -(I + dw) / 2, H / 2, F, 0, 0);
+    plane(I - dw, H, (I + dw) / 2, H / 2, F, 0, 0);
+    plane(2 * dw, H - dh, 0, (H + dh) / 2, F, 0, 0);
+    const bulb = new Mesh(dk.geo(new SphereGeometry(0.03, 12, 8)), dk.basic(T.glow));
+    bulb.position.set(0, H - 0.04, 0);
+    lob.add(bulb);
+    const pic = new Mesh(dk.geo(new PlaneGeometry(0.17, 0.17)), dk.mats.plaque);
+    pic.position.set(0, 0.3, -I + 0.006);
+    lob.add(pic);
+    const picFrame = new Mesh(dk.geo(new PlaneGeometry(0.2, 0.2)), dk.mats.plaqueFrame);
+    picFrame.position.set(0, 0.3, -I + 0.003);
+    lob.add(picFrame);
+    const pot = dk.makePot(0.32, S.vegetation.colors);
+    pot.position.set(-0.32, 0.004, -0.3);
+    lob.add(pot);
+    const pot2 = dk.makePot(0.26, T.plants);
+    pot2.position.set(0.33, 0.004, -0.32);
+    lob.add(pot2);
+    city.add(lob);
+
+    doorInfo = { d, facade, hinge: cityDoor.hinge };
   }
 
   // ---- Cars
@@ -464,11 +574,11 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   sun.position.set(-size * 0.9, size * 1.6, size * 0.5);
 
   // ---- Animation
-  let born = -1;
+  let born = Number.NaN;
   const riseDuration = maxDelay + 0.9;
 
-  function update({ now, dt, t, reduce }: CityFrame) {
-    if (born < 0) born = now;
+  function update({ now, dt, t, reduce, bob = true }: CityFrame) {
+    if (Number.isNaN(born)) born = options.rise === false ? now - 1e9 : now;
     const el = (now - born) / 1000;
     for (const b of buildings) {
       const k = reduce ? 1 : clamp01((el - (b.userData.delay as number)) / 0.9);
@@ -520,7 +630,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
         }
       }
     }
-    city.position.y = reduce ? 0 : Math.sin(now / 1600) * 0.12 * (1 - t);
+    city.position.y = reduce || !bob ? 0 : Math.sin(now / 1600) * 0.12 * (1 - t);
   }
 
   function dispose() {
@@ -531,5 +641,5 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     root.clear();
   }
 
-  return { root, riseDuration, size, update, dispose };
+  return { root, riseDuration, size, door: doorInfo, update, dispose };
 }

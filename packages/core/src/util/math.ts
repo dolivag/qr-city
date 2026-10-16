@@ -21,3 +21,5 @@ export function ringPoint(R: number, s: number): [number, number, number] {
   if (s < 3 * L) return [R - (s - 2 * L), R, Math.PI];
   return [-R, R - (s - 3 * L), -Math.PI / 2];
 }
+
+export const easeIn = (x: number): number => x * x * x;

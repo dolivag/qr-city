@@ -7,8 +7,8 @@ const VIEWS: readonly QrCityView[] = ['city', 'qr'];
 const ECCS: readonly QrCityEcc[] = ['L', 'M', 'Q', 'H'];
 const QUALITIES: readonly QrCityQuality[] = ['auto', 'high', 'low'];
 
-export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onViewChange' | 'onError' | 'background' | 'maxPixelRatio'>> &
-  Pick<QrCityOptions, 'onReveal' | 'onViewChange' | 'onError' | 'background' | 'maxPixelRatio'>;
+export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onError' | 'background' | 'maxPixelRatio'>> &
+  Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onError' | 'background' | 'maxPixelRatio'>;
 
 function oneOf<T extends string>(name: string, value: unknown, allowed: readonly T[]): T {
   if (!allowed.includes(value as T)) {
@@ -30,8 +30,8 @@ export function validateData(data: unknown): string {
 /** Applies defaults and validates. Throws on invalid input; never touches the DOM. */
 export function resolveOptions(input: QrCityOptions): ResolvedOptions {
   const intro = oneOf('intro', input.intro ?? 'none', INTROS);
-  if (intro !== 'none') {
-    throw new RangeError(`[qr-city] intro "${intro}" is not implemented yet. Use "none".`);
+  if (intro === 'flyover') {
+    throw new RangeError('[qr-city] intro "flyover" is not implemented yet. Use "door" or "none".');
   }
   const maxPixelRatio = input.maxPixelRatio;
   if (maxPixelRatio !== undefined && !(maxPixelRatio > 0)) throw new RangeError('[qr-city] `maxPixelRatio` must be greater than 0.');
@@ -39,6 +39,7 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     data: validateData(input.data),
     style: input.style ?? 'moderna',
     intro,
+    pauseAtThreshold: input.pauseAtThreshold ?? false,
     view: oneOf('view', input.view ?? 'city', VIEWS),
     errorCorrection: oneOf('errorCorrection', input.errorCorrection ?? 'M', ECCS),
     quality: oneOf('quality', input.quality ?? 'auto', QUALITIES),
@@ -46,8 +47,10 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     animate: input.animate ?? 'auto',
     maxPixelRatio,
     label: input.label ?? 'QR code city',
+    doorLabel: input.doorLabel ?? 'Open the door',
     background: input.background,
     onReveal: input.onReveal,
+    onIntroStage: input.onIntroStage,
     onViewChange: input.onViewChange,
     onError: input.onError,
   };

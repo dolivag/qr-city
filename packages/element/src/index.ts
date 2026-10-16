@@ -4,6 +4,7 @@ export { QrCityElement } from './qr-city-element';
 export type { QrCityEventMap } from './qr-city-element';
 export type {
   QrCityController,
+  QrCityIntroStage,
   QrCityOptions,
   QrCityStyle,
   QrCityStyleId,

@@ -2,7 +2,7 @@
 
 Una ciudad 3D isométrica cuyos **tejados forman un código QR escaneable**. Cada módulo oscuro del QR es un edificio; los claros son calles y suelo. Al pasar a la vista cenital, el QR se lee.
 
-> Estado: **fase 1** — núcleo (`@qr-city/core`), Web Component (`@qr-city/element`) y demo mínima, con el estilo *Moderna* e intro `none`.
+> Estado: núcleo (`@qr-city/core`), Web Component (`@qr-city/element`) y demo con la intro de la puerta (`intro: 'door'`). Un solo estilo de ciudad por ahora (*Moderna*).
 
 ## Paquetes
 

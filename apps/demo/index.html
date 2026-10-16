@@ -22,19 +22,39 @@
       </header>
 
       <section class="stage" aria-label="Ciudad 3D">
-        <qr-city id="city" data="https://github.com/dolivag/qr-city" label="Ciudad 3D cuyos tejados forman un código QR"></qr-city>
+        <qr-city
+          id="city"
+          intro="door"
+          pause-at-threshold
+          data="https://github.com/dolivag/qr-city"
+          door-label="Abrir la puerta"
+          label="Ciudad 3D cuyos tejados forman un código QR"
+        ></qr-city>
+
+        <p class="hint" id="hint">Toca la puerta para entrar</p>
+        <button type="button" class="skip" id="skip" hidden>Saltar animación</button>
+
+        <div class="gate" id="gate" hidden>
+          <form class="card" id="form" autocomplete="off" novalidate>
+            <h2>¿Qué ciudad <em>construimos</em>?</h2>
+            <p>Pega un enlace o un texto. Los tejados de la ciudad formarán su código QR.</p>
+            <label for="data">Enlace o texto</label>
+            <input id="data" type="text" value="https://github.com/dolivag/qr-city" maxlength="300" spellcheck="false" />
+            <p class="err" id="err" role="alert"></p>
+            <div class="row">
+              <button type="submit" class="primary">Construir ciudad</button>
+              <button type="button" id="cancel" hidden>Cancelar</button>
+            </div>
+          </form>
+        </div>
       </section>
 
-      <form id="form" class="panel" autocomplete="off">
-        <label for="data">Enlace o texto</label>
-        <input id="data" type="text" value="https://github.com/dolivag/qr-city" maxlength="300" spellcheck="false" />
-        <div class="row">
-          <button type="submit" class="primary">Construir</button>
-          <button type="button" id="toggle">Revelar QR</button>
-          <button type="button" id="png">Descargar PNG</button>
-        </div>
+      <div class="panel">
+        <button type="button" id="toggle" disabled>Revelar QR</button>
+        <button type="button" id="again" disabled>Otra ciudad</button>
+        <button type="button" id="png" disabled>Descargar PNG</button>
         <p id="msg" role="status"></p>
-      </form>
+      </div>
 
       <footer class="foot">
         <span>@qr-city/element</span>

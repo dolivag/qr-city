@@ -1,8 +1,16 @@
 /** Identifiers of the built-in styles. Phase 1 ships `moderna` only. */
 export type QrCityStyleId = 'moderna';
 
-/** How the city is introduced. Only `'none'` is implemented for now. */
+/** How the city is introduced. `'flyover'` is not implemented yet. */
 export type QrCityIntro = 'door' | 'flyover' | 'none';
+
+/**
+ * Stages of the `'door'` intro, in order:
+ * `door` (idle, waiting to be opened) → `entering` (door opens, camera walks in) →
+ * `threshold` (white screen; waits here when `pauseAtThreshold` is set) →
+ * `flying` (leaves through the door, the camera rises) → `done` (the city). `'none'` starts at `done`.
+ */
+export type QrCityIntroStage = 'door' | 'entering' | 'threshold' | 'flying' | 'done';
 
 /** `city`: isometric view · `qr`: top-down orthographic view where the QR can be scanned. */
 export type QrCityView = 'city' | 'qr';
@@ -12,6 +20,33 @@ export type QrCityQuality = 'auto' | 'high' | 'low';
 
 /** QR error-correction level. */
 export type QrCityEcc = 'L' | 'M' | 'Q' | 'H';
+
+/** Colors of the door scene and the small door in the city (CSS hex strings). */
+export interface QrCityDoorTheme {
+  /** Backdrop, fog, floor and lobby walls. */
+  background: string;
+  /** Color of the flash that covers the transitions. */
+  veil: string;
+  light: { sky: string; ground: string; intensity: number; sun: string; sunIntensity: number };
+  frame: string;
+  frameDark: string;
+  panel: string;
+  panelRaised: string;
+  brass: string;
+  /** Engraved mini QR: paper and ink. */
+  plaque: { frame: string; paper: string; ink: string };
+  step: string;
+  mat: string;
+  pot: string;
+  plants: string[];
+  /** Floating cubes around the door. */
+  floaters: string[];
+  /** Light behind the door. */
+  glow: string;
+  /** Warm light inside the lobby and the wall lamp. */
+  warm: string;
+  lobbyFloor: string;
+}
 
 /**
  * Style definition. Colors are CSS hex strings (`#rrggbb`) so styles are serializable.
@@ -54,6 +89,8 @@ export interface QrCityStyle {
   flyers: { kind: 'birds'; color: string };
   /** Light border around the QR, in modules (5–6). */
   quietZone: number;
+  /** Door scene theme. Falls back to the `moderna` one. */
+  door?: QrCityDoorTheme;
 }
 
 export interface QrCityOptions {
@@ -61,8 +98,10 @@ export interface QrCityOptions {
   data: string;
   /** Built-in style id or a custom style object. Default `'moderna'`. */
   style?: QrCityStyleId | QrCityStyle;
-  /** Default `'none'`. */
+  /** Default `'none'`. Fixed at creation. */
   intro?: QrCityIntro;
+  /** With `intro: 'door'`: stop at the white screen after the door until `continueIntro()`. Default `false`. */
+  pauseAtThreshold?: boolean;
   /** Initial view. Default `'city'`. */
   view?: QrCityView;
   /** Default `'M'`. */
@@ -79,8 +118,12 @@ export interface QrCityOptions {
   background?: string;
   /** Accessible name of the canvas. Default `'QR code city'`. */
   label?: string;
-  /** The city finished building and is on screen. */
+  /** Accessible name of the canvas while the door is waiting to be opened. Default `'Open the door'`. */
+  doorLabel?: string;
+  /** The city is on screen: it finished building (or the door intro finished). */
   onReveal?: () => void;
+  /** The door intro moved to another stage. */
+  onIntroStage?: (stage: QrCityIntroStage) => void;
   onViewChange?: (view: QrCityView) => void;
   /** Runtime failures after creation (e.g. WebGL context lost). */
   onError?: (error: Error) => void;
@@ -89,6 +132,14 @@ export interface QrCityOptions {
 export interface QrCityController {
   readonly canvas: HTMLCanvasElement;
   readonly view: QrCityView;
+  /** Current intro stage (`'done'` when there is no intro or it already finished). */
+  readonly stage: QrCityIntroStage;
+  /** Starts the door animation (same as clicking the door). */
+  openDoor(): void;
+  /** From the `threshold` stage, leaves the door and flies to the city. */
+  continueIntro(): void;
+  /** Jumps to the final city, whatever the stage. */
+  skipIntro(): void;
   /** Goes to the top-down view where the QR is readable. Same as `setView('qr')`. */
   reveal(): void;
   setView(view: QrCityView, opts?: { immediate?: boolean }): void;

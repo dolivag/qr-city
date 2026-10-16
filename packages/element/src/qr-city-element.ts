@@ -3,6 +3,7 @@ import type {
   QrCityController,
   QrCityEcc,
   QrCityIntro,
+  QrCityIntroStage,
   QrCityOptions,
   QrCityQuality,
   QrCityStyle,
@@ -16,7 +17,7 @@ const Base: typeof HTMLElement =
 
 const ATTRIBUTES = [
   'data', 'style-name', 'intro', 'view', 'error-correction', 'quality',
-  'animate', 'interactive', 'background', 'label',
+  'animate', 'interactive', 'background', 'label', 'pause-at-threshold', 'door-label',
 ] as const;
 
 const TEMPLATE_CSS = `
@@ -28,6 +29,7 @@ const TEMPLATE_CSS = `
 export interface QrCityEventMap {
   'qr-city-reveal': CustomEvent<void>;
   'qr-city-viewchange': CustomEvent<{ view: QrCityView }>;
+  'qr-city-introstage': CustomEvent<{ stage: QrCityIntroStage }>;
   'qr-city-error': CustomEvent<{ error: Error }>;
 }
 
@@ -35,7 +37,8 @@ export interface QrCityEventMap {
  * `<qr-city data="https://example.com">`: a 3D city whose rooftops form a scannable QR.
  *
  * Attributes: `data`, `style-name`, `intro`, `view`, `error-correction`, `quality`,
- * `animate` (`auto` | `true` | `false`; property `animated`), `interactive` (`false` disables clicks), `background`, `label`.
+ * `animate` (`auto` | `true` | `false`; property `animated`), `interactive` (`false` disables clicks), `background`, `label`,
+ * `pause-at-threshold` (with `intro="door"`: wait at the white screen until `continueIntro()`), `door-label`.
  * Size it with CSS (default: a square as wide as its container).
  */
 export class QrCityElement extends Base {
@@ -45,6 +48,7 @@ export class QrCityElement extends Base {
   #controller: QrCityController | null = null;
   #io: IntersectionObserver | null = null;
   #opts: Partial<QrCityOptions> = {};
+  #mountedIntro: QrCityIntro | undefined;
   #userPaused = false;
   #visible = true;
 
@@ -91,10 +95,22 @@ export class QrCityElement extends Base {
   get label(): string | undefined { return this.#opts.label; }
   set label(v: string | undefined) { this.#set({ label: v }); }
 
+  get pauseAtThreshold(): boolean | undefined { return this.#opts.pauseAtThreshold; }
+  set pauseAtThreshold(v: boolean | undefined) { this.#set({ pauseAtThreshold: v }); }
+
+  get doorLabel(): string | undefined { return this.#opts.doorLabel; }
+  set doorLabel(v: string | undefined) { this.#set({ doorLabel: v }); }
+
+  /** Current stage of the door intro (`'done'` without an intro). */
+  get stage(): QrCityIntroStage { return this.#controller?.stage ?? 'done'; }
+
   /** The underlying controller, or `null` while disconnected or without valid `data`. */
   get controller(): QrCityController | null { return this.#controller; }
 
   // ---- Methods ---------------------------------------------------------
+  openDoor(): void { this.#controller?.openDoor(); }
+  continueIntro(): void { this.#controller?.continueIntro(); }
+  skipIntro(): void { this.#controller?.skipIntro(); }
   reveal(): void { this.#controller?.reveal(); }
   setView(view: QrCityView, opts?: { immediate?: boolean }): void { this.#controller?.setView(view, opts); }
   toggleView(): void { this.#controller?.toggleView(); }
@@ -107,7 +123,7 @@ export class QrCityElement extends Base {
 
   // ---- Lifecycle -------------------------------------------------------
   connectedCallback(): void {
-    for (const p of ['data', 'cityStyle', 'intro', 'view', 'errorCorrection', 'quality', 'animated', 'interactive', 'background', 'label']) {
+    for (const p of ['data', 'cityStyle', 'intro', 'view', 'errorCorrection', 'quality', 'animated', 'interactive', 'background', 'label', 'pauseAtThreshold', 'doorLabel']) {
       this.#upgrade(p);
     }
     for (const name of ATTRIBUTES) this.#readAttribute(name, this.getAttribute(name));
@@ -156,6 +172,8 @@ export class QrCityElement extends Base {
       case 'interactive': o.interactive = v === undefined ? undefined : v !== 'false'; break;
       case 'background': o.background = v; break;
       case 'label': o.label = v; break;
+      case 'pause-at-threshold': o.pauseAtThreshold = v === undefined ? undefined : v !== 'false'; break;
+      case 'door-label': o.doorLabel = v; break;
     }
   }
 
@@ -177,6 +195,8 @@ export class QrCityElement extends Base {
   #apply(): void {
     if (!this.#controller) { this.#mount(); return; }
     if (!this.#opts.data) { this.#unmount(); return; }
+    // `intro` is fixed when the controller is created: changing it means starting over.
+    if ((this.#opts.intro ?? 'none') !== (this.#mountedIntro ?? 'none')) { this.#unmount(); this.#mount(); return; }
     try {
       this.#controller.update(this.#clean());
     } catch (error) {
@@ -190,9 +210,11 @@ export class QrCityElement extends Base {
       this.#controller = createQrCity(this.#stage, {
         ...this.#clean(),
         onReveal: () => this.#emit('qr-city-reveal', undefined),
+        onIntroStage: (stage) => this.#emit('qr-city-introstage', { stage }),
         onViewChange: (view) => this.#emit('qr-city-viewchange', { view }),
         onError: (error) => this.#emit('qr-city-error', { error }),
       });
+      this.#mountedIntro = this.#opts.intro;
       this.#syncLoop();
     } catch (error) {
       this.#emit('qr-city-error', { error: error as Error });

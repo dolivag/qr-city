@@ -19,7 +19,9 @@ Si prefieres registrarlo tú: `import { defineQrCity } from '@qr-city/element'; 
 | --- | --- | --- |
 | `data` | `data` | Texto o URL (1–300). Sin `data` no se renderiza nada. |
 | `style-name` | `cityStyle` | Id de estilo; la propiedad también acepta un objeto `QrCityStyle`. |
-| `intro` | `intro` | Solo `none` por ahora. |
+| `intro` | `intro` | `none` \| `door`. Si cambia, el elemento se reinicia. |
+| `pause-at-threshold` | `pauseAtThreshold` | Con `intro="door"`, espera en la pantalla blanca hasta `continueIntro()`. |
+| `door-label` | `doorLabel` | Nombre accesible mientras la puerta espera. |
 | `view` | `view` | `city` \| `qr`. |
 | `error-correction` | `errorCorrection` | `L` `M` `Q` `H`. |
 | `quality` | `quality` | `auto` `high` `low`. |
@@ -28,8 +30,10 @@ Si prefieres registrarlo tú: `import { defineQrCity } from '@qr-city/element'; 
 | `background` | `background` | Color CSS o `transparent`. |
 | `label` | `label` | Nombre accesible. |
 
-Métodos: `reveal()`, `setView()`, `toggleView()`, `toPNG()`, `play()`, `pause()`, y `controller` (el controlador de `@qr-city/core`).
+Métodos: `openDoor()`, `continueIntro()`, `skipIntro()`, `reveal()`, `setView()`, `toggleView()`, `toPNG()`, `play()`, `pause()`, y `controller` (el controlador de `@qr-city/core`).
 
-Eventos (burbujean y atraviesan el shadow DOM): `qr-city-reveal`, `qr-city-viewchange` (`detail.view`), `qr-city-error` (`detail.error`).
+Propiedad de solo lectura `stage` (etapa de la intro).
+
+Eventos (burbujean y atraviesan el shadow DOM): `qr-city-reveal`, `qr-city-introstage` (`detail.stage`), `qr-city-viewchange` (`detail.view`), `qr-city-error` (`detail.error`).
 
 El elemento mide por defecto un cuadrado del ancho de su contenedor; ponle tamaño con CSS. Se pausa fuera de pantalla (`IntersectionObserver`) y libera todo al desconectarse del DOM.

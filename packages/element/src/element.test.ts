@@ -6,6 +6,7 @@ let lastOptions: Record<string, unknown> = {};
 function fakeController() {
   return {
     view: 'city' as 'city' | 'qr',
+    openDoor: vi.fn(), continueIntro: vi.fn(), skipIntro: vi.fn(), stage: 'done',
     reveal: vi.fn(), setView: vi.fn(), toggleView: vi.fn(), setStyle: vi.fn(),
     update: vi.fn(), toPNG: vi.fn(async () => new Blob()), play: vi.fn(), pause: vi.fn(),
     resize: vi.fn(), dispose: vi.fn(), canvas: document.createElement('canvas'),
@@ -116,6 +117,36 @@ describe('<qr-city>', () => {
     defineQrCity('qr-city-late');
     expect(controllers).toHaveLength(1);
     expect(lastOptions.data).toBe('early');
+  });
+
+  it('maps the door-intro attributes and re-emits stage changes', () => {
+    document.body.append(make({ data: 'a', intro: 'door', 'pause-at-threshold': '', 'door-label': 'Abrir la puerta' }));
+    expect(lastOptions).toMatchObject({ intro: 'door', pauseAtThreshold: true, doorLabel: 'Abrir la puerta' });
+    const stages: string[] = [];
+    document.body.addEventListener('qr-city-introstage', (e) => stages.push((e as CustomEvent).detail.stage));
+    (lastOptions.onIntroStage as (s: string) => void)('threshold');
+    expect(stages).toEqual(['threshold']);
+  });
+
+  it('restarts the controller when intro changes (it is fixed at creation)', () => {
+    const el = make({ data: 'a' });
+    document.body.append(el);
+    el.setAttribute('intro', 'door');
+    expect(controllers[0].dispose).toHaveBeenCalled();
+    expect(controllers).toHaveLength(2);
+    expect(lastOptions.intro).toBe('door');
+  });
+
+  it('forwards the intro methods', () => {
+    const el = make({ data: 'a', intro: 'door' });
+    document.body.append(el);
+    el.openDoor();
+    el.continueIntro();
+    el.skipIntro();
+    const c = controllers[0] as unknown as Record<string, ReturnType<typeof vi.fn>>;
+    expect(c.openDoor).toHaveBeenCalled();
+    expect(c.continueIntro).toHaveBeenCalled();
+    expect(c.skipIntro).toHaveBeenCalled();
   });
 
   it('forwards imperative methods', () => {
