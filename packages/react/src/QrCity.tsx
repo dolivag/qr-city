@@ -3,7 +3,7 @@ import type { QrCityController, QrCityOptions, QrCityStyle, QrCityStyleId } from
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import type { CSSProperties, HTMLAttributes } from 'react';
 
-type Callbacks = Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onError'>;
+type Callbacks = Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError'>;
 
 export interface QrCityProps
   extends Omit<HTMLAttributes<HTMLDivElement>, 'children' | 'onError'>,
@@ -27,8 +27,8 @@ const DEFAULT_STYLE: CSSProperties = { width: '100%', aspectRatio: '1 / 1' };
 export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(props, ref) {
   const {
     data, cityStyle, intro, pauseAtThreshold, view, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, background, label, doorLabel,
-    onReveal, onIntroStage, onViewChange, onZoomChange, onError,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel,
+    onReveal, onIntroStage, onViewChange, onZoomChange, onFallback, onError,
     style, className, ...rest
   } = props;
 
@@ -37,7 +37,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
 
   // Handlers change identity on every render; the controller always calls the latest ones.
   const callbacks = useRef<Callbacks>({});
-  callbacks.current = { onReveal, onIntroStage, onViewChange, onZoomChange, onError };
+  callbacks.current = { onReveal, onIntroStage, onViewChange, onZoomChange, onFallback, onError };
 
   // A custom style object that is re-created on every render with the same content must not rebuild the city.
   const styleKey = typeof cityStyle === 'object' ? JSON.stringify(cityStyle) : cityStyle;
@@ -45,7 +45,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
 
   const options: Omit<QrCityOptions, keyof Callbacks> = {
     data, style: stableStyle, intro, pauseAtThreshold, view, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, background, label, doorLabel,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel,
   };
   const latest = useRef(options);
   latest.current = options;
@@ -66,6 +66,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
         onIntroStage: (s) => callbacks.current.onIntroStage?.(s),
         onViewChange: (v) => callbacks.current.onViewChange?.(v),
         onZoomChange: (z) => callbacks.current.onZoomChange?.(z),
+        onFallback: (r) => callbacks.current.onFallback?.(r),
         onError: (e) => report(e),
       } as QrCityOptions);
     } catch (error) {
@@ -80,7 +81,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
   // Everything else is applied in place (the city is rebuilt only when it has to be).
   const key = JSON.stringify([
     data, styleKey, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, background, label, doorLabel, pauseAtThreshold, view,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, pauseAtThreshold, view,
   ]);
   useEffect(() => {
     try {
@@ -94,6 +95,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
     const c = () => controllerRef.current;
     return {
       get canvas() { return c()?.canvas ?? null; },
+      get fallback() { return c()?.fallback ?? false; },
       get view() { return c()?.view ?? 'city'; },
       get zoom() { return c()?.zoom ?? 1; },
       get stage() { return c()?.stage ?? 'done'; },
@@ -109,6 +111,12 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
       setStyle: (s) => c()?.setStyle(s),
       update: (n) => c()?.update(n),
       toPNG: (o) => (c() ? (c() as QrCityController).toPNG(o) : Promise.reject(new Error('[qr-city] The city is not mounted.'))),
+      toQrSvg: (o) => {
+        const ctl = c();
+        if (!ctl) throw new Error('[qr-city] The city is not mounted.');
+        return ctl.toQrSvg(o);
+      },
+      toQrPng: (o) => (c() ? (c() as QrCityController).toQrPng(o) : Promise.reject(new Error('[qr-city] The city is not mounted.'))),
       play: () => c()?.play(),
       pause: () => c()?.pause(),
       resize: () => c()?.resize(),

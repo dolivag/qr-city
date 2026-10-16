@@ -10,7 +10,7 @@ let failNext = false;
 
 function fakeController() {
   return {
-    view: 'city', zoom: 1, stage: 'done', canvas: document.createElement('canvas'),
+    view: 'city', fallback: false, zoom: 1, stage: 'done', toQrSvg: vi.fn(() => '<svg/>'), toQrPng: vi.fn(async () => new Blob()), canvas: document.createElement('canvas'),
     openDoor: vi.fn(), continueIntro: vi.fn(), skipIntro: vi.fn(), reveal: vi.fn(), setView: vi.fn(),
     toggleView: vi.fn(), setZoom: vi.fn(), zoomBy: vi.fn(), resetZoom: vi.fn(), setStyle: vi.fn(),
     update: vi.fn(), toPNG: vi.fn(async () => new Blob()), play: vi.fn(), pause: vi.fn(), resize: vi.fn(), dispose: vi.fn(),
@@ -115,6 +115,18 @@ describe('<QrCity> (Vue)', () => {
     expect(onIntroStage).toHaveBeenCalledWith('threshold');
     expect(onViewChange).toHaveBeenCalledWith('qr');
     expect(onZoomChange).toHaveBeenCalledWith(2);
+  });
+
+  it('emits "fallback", passes the fallback prop and exposes the plain QR', () => {
+    const onFallback = vi.fn();
+    const { inst } = mount({ data: 'a', fallback: 'none' }, { onFallback } as never);
+    expect(lastOptions).toMatchObject({ fallback: 'none' });
+    (lastOptions.onFallback as (e: Error) => void)(new Error('no webgl'));
+    expect(onFallback).toHaveBeenCalledTimes(1);
+    const api = inst.current as { toQrSvg: (o?: unknown) => string; fallback: boolean };
+    expect(api.toQrSvg({ margin: 2 })).toBe('<svg/>');
+    expect(controllers[0].toQrSvg).toHaveBeenCalledWith({ margin: 2 });
+    expect(api.fallback).toBe(false);
   });
 
   it('emits "error" instead of throwing when the city cannot be created', () => {

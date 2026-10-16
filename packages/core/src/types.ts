@@ -1,3 +1,5 @@
+import type { QrImageOptions, QrPngOptions } from './qr/image';
+
 /** Identifiers of the built-in styles. */
 export type QrCityStyleId = 'moderna' | 'costera' | 'ciberpunk' | 'nevada';
 
@@ -130,6 +132,11 @@ export interface QrCityOptions {
   wheelZoom?: 'ctrl' | 'always' | 'off';
   /** CSS color, or `'transparent'`. Default: the style's sky color. */
   background?: string;
+  /**
+   * What to do when WebGL is not available. `'qr'` (default) shows a plain, scannable QR code with
+   * the style's colors, so the person still gets a usable code; `'none'` throws instead.
+   */
+  fallback?: 'qr' | 'none';
   /** Accessible name of the canvas. Default `'QR code city'`. */
   label?: string;
   /** Accessible name of the canvas while the door is waiting to be opened. Default `'Open the door'`. */
@@ -140,12 +147,20 @@ export interface QrCityOptions {
   onIntroStage?: (stage: QrCityIntroStage) => void;
   onViewChange?: (view: QrCityView) => void;
   onZoomChange?: (zoom: number) => void;
+  /**
+   * WebGL is not available (or its context was lost for good) and the plain QR is being shown.
+   * Without this callback a warning is logged to the console.
+   */
+  onFallback?: (reason: Error) => void;
   /** Runtime failures after creation (e.g. WebGL context lost). */
   onError?: (error: Error) => void;
 }
 
 export interface QrCityController {
-  readonly canvas: HTMLCanvasElement;
+  /** The WebGL canvas, or `null` while the plain-QR fallback is shown. */
+  readonly canvas: HTMLCanvasElement | null;
+  /** `true` while a plain QR is shown instead of the 3D city (no WebGL). Everything else keeps working as no-ops. */
+  readonly fallback: boolean;
   readonly view: QrCityView;
   /** Current zoom target (1 = the whole city in view). */
   readonly zoom: number;
@@ -169,8 +184,12 @@ export interface QrCityController {
   setStyle(style: QrCityStyleId | QrCityStyle): void;
   /** Rebuilds the city only if `data`, `style`, `errorCorrection` or `quality` change. */
   update(next: Partial<QrCityOptions>): void;
-  /** Renders a frame and encodes it. `scale` multiplies the current canvas resolution. */
+  /** Renders a frame and encodes it. `scale` multiplies the current canvas resolution. In fallback mode it returns the plain QR. */
   toPNG(opts?: { scale?: number }): Promise<Blob>;
+  /** The current code as a plain, print-ready SVG (black on white by default). Works in every mode. */
+  toQrSvg(opts?: Omit<QrImageOptions, 'errorCorrection'>): string;
+  /** The current code as a plain PNG. Works in every mode. */
+  toQrPng(opts?: Omit<QrPngOptions, 'errorCorrection'>): Promise<Blob>;
   play(): void;
   pause(): void;
   resize(): void;

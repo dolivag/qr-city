@@ -4,6 +4,10 @@ import type { Flight } from './camera/flight';
 import { groundPointAt, placeOrtho } from './camera/ortho';
 import { resolveOptions, validateData } from './options';
 import type { ResolvedOptions } from './options';
+import { createFallbackController } from './fallbackController';
+import { mountFlatQr } from './fallback';
+import type { FlatQr } from './fallback';
+import { qrToPng, qrToSvg } from './qr/image';
 import { createMatrix } from './qr/matrix';
 import { resolveQuality } from './runtime/quality';
 import type { QualityProfile } from './runtime/quality';
@@ -57,7 +61,13 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   try {
     renderer = new WebGLRenderer({ canvas, antialias: profile.antialias, alpha: true, powerPreference: 'high-performance' });
   } catch (err) {
-    throw new Error(`[qr-city] Could not create a WebGL context: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+    const detail = err instanceof Error ? err.message : String(err);
+    if (opts.fallback === 'none') throw new Error(`[qr-city] Could not create a WebGL context: ${detail}`, { cause: err });
+    return createFallbackController(
+      el,
+      raw,
+      new Error(`[qr-city] WebGL is not available (${detail}). Showing a plain QR code instead.`, { cause: err }),
+    );
   }
   renderer.outputColorSpace = LinearSRGBColorSpace;
   renderer.shadowMap.enabled = profile.shadows;
@@ -85,6 +95,8 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   let flight: Flight | null = null;
   let buildQueued = false;
   let disposed = false;
+  let flat: FlatQr | null = null;
+  let lostTimer = 0;
   let playing = true;
   let contextLost = false;
   let raf = 0;
@@ -494,8 +506,21 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     e.preventDefault();
     contextLost = true;
     report(new Error('[qr-city] The WebGL context was lost.'));
+    // Browsers usually give the context back within moments; if not, show a plain QR over the canvas.
+    clearTimeout(lostTimer);
+    lostTimer = window.setTimeout(() => {
+      if (!contextLost || disposed || flat || opts.fallback === 'none') return;
+      flat = mountFlatQr(wrapper, { data: opts.data, errorCorrection: opts.errorCorrection, style, label: opts.label }, true);
+      const reason = new Error('[qr-city] The WebGL context was lost and did not come back. Showing a plain QR code instead.');
+      safe(() => (opts.onFallback ? opts.onFallback(reason) : console.warn(reason.message)));
+    }, 3000);
   };
-  const onRestored = () => { contextLost = false; };
+  const onRestored = () => {
+    contextLost = false;
+    clearTimeout(lostTimer);
+    flat?.dispose();
+    flat = null;
+  };
   const onMotionChange = () => {
     if (reduced() && stage === 'done') t = target;
   };
@@ -569,6 +594,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     } else {
       applyBackground();
     }
+    flat?.update(opts.data, opts.errorCorrection, style);
     if (!opts.zoomable || zoomTarget > opts.maxZoom) setZoom(opts.zoomable ? opts.maxZoom : 1, { immediate: true });
     applyA11y();
     if (viewRequested) setView(resolved.view);
@@ -600,6 +626,9 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     if (disposed) return;
     disposed = true;
     stopLoop();
+    clearTimeout(lostTimer);
+    flat?.dispose();
+    flat = null;
     observer?.disconnect();
     if (!observer) removeEventListener('resize', resize);
     reduceQuery?.removeEventListener?.('change', onMotionChange);
@@ -624,6 +653,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
 
   return {
     canvas,
+    fallback: false,
     get view(): QrCityView {
       return target === 1 ? 'qr' : 'city';
     },
@@ -645,6 +675,8 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     setStyle: (s: QrCityStyleId | QrCityStyle) => update({ style: s }),
     update,
     toPNG,
+    toQrSvg: (o) => qrToSvg(opts.data, { errorCorrection: opts.errorCorrection, ...o }),
+    toQrPng: (o) => qrToPng(opts.data, { errorCorrection: opts.errorCorrection, ...o }),
     play() {
       if (disposed || playing) return;
       playing = true;
