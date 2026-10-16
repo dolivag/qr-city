@@ -11,9 +11,11 @@ interface Person { obj: Object3D; R: number; s: number; v: number; phase: number
 /** Cars on the ring road and the streets, and pedestrians on the sidewalks. */
 export function createTraffic(ctx: SceneCtx, runs: Run[]): Animated {
   const { style: S, profile, decor, lambert, basic, geo, R } = ctx;
-  const kit = createCarKit();
+  const full = profile.level === 'high';
+  const kit = createCarKit(profile.detail, full);
   for (const k of Object.values(kit.kinds)) { geo(k.bodyGeo); geo(k.cabGeo); geo(k.roofGeo); }
   geo(kit.wheel); geo(kit.rim); geo(kit.lamp);
+  if (kit.mirror) geo(kit.mirror);
   const glass = S.traffic.glow ? basic(0x1a1430) : lambert(0x7d8aa6);
   const tyre = lambert(0x4a5163);
   const rim = lambert(0xe8ebf2);
@@ -33,10 +35,13 @@ export function createTraffic(ctx: SceneCtx, runs: Run[]): Animated {
     for (const x of [K.front - 0.09, K.rear + 0.09]) {
       for (const z of [-0.105, 0.105]) {
         const w = new Mesh(kit.wheel, tyre);
-        const rm = new Mesh(kit.rim, rim);
         w.position.set(x, 0.055, z);
-        rm.position.set(x, 0.055, z);
-        car.add(w, rm);
+        car.add(w);
+        if (full) {
+          const rm = new Mesh(kit.rim, rim);
+          rm.position.set(x, 0.055, z);
+          car.add(rm);
+        }
       }
     }
     for (const z of [-0.07, 0.07]) {
@@ -45,6 +50,13 @@ export function createTraffic(ctx: SceneCtx, runs: Run[]): Animated {
       const tl = new Mesh(kit.lamp, tailM);
       tl.position.set(K.rear, 0.13, z);
       car.add(hl, tl);
+    }
+    if (kit.mirror) {
+      for (const z of [-0.1, 0.1]) {
+        const m = new Mesh(kit.mirror, paint);
+        m.position.set(K.mirrorX, K.mirrorY, z);
+        car.add(m);
+      }
     }
     decor.add(car);
     return car;
@@ -65,8 +77,8 @@ export function createTraffic(ctx: SceneCtx, runs: Run[]): Animated {
       cars.push({ obj: makeCar(i + 3), type: 'run', run, s: rand(i, 11), v: 0.6 + rand(11, i) * 0.5, dir: rand(i, 12) > 0.5 ? 1 : -1 });
     });
 
-  const personBody = geo(new CylinderGeometry(0.05, 0.065, 0.17, 12).translate(0, 0.12, 0));
-  const personHead = geo(new SphereGeometry(0.052, 14, 10).translate(0, 0.26, 0));
+  const personBody = geo(new CylinderGeometry(0.05, 0.065, 0.17, Math.max(6, Math.round(12 * profile.detail))).translate(0, 0.12, 0));
+  const personHead = geo(new SphereGeometry(0.052, Math.max(8, Math.round(14 * profile.detail)), Math.max(5, Math.round(10 * profile.detail))).translate(0, 0.26, 0));
   const skin = lambert(0xf2d2bb);
   const people: Person[] = [];
   for (let i = 0; i < profile.people; i++) {

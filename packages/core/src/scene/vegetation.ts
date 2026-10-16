@@ -22,6 +22,7 @@ export function createVegetation(ctx: SceneCtx): Animated {
   const trunkMat = lambert(neon ? 0x3a3360 : 0xc4a48d);
   const lampMat = lambert(neon ? 0x3a3360 : 0x9aa3b8);
   const bulbMat = basic(neon ? 0xff6fd8 : 0xfff6d8);
+  const full = profile.level === 'high';
   const snowing = S.flyers.kind === 'snow';
   const snowMat = lambert(0xffffff);
   const nutMat = lambert(0xb08a6a);
@@ -40,7 +41,7 @@ export function createVegetation(ctx: SceneCtx): Animated {
   const neonRing = geo(new TorusGeometry(0.16, 0.02, 8, 24));
   const frondGeo = geo((() => {
     const L = 0.5;
-    const g = new PlaneGeometry(L, 0.13, 12, 2).translate(L / 2, 0, 0).rotateX(-Math.PI / 2);
+    const g = new PlaneGeometry(L, 0.13, full ? 12 : 6, full ? 2 : 1).translate(L / 2, 0, 0).rotateX(-Math.PI / 2);
     const p = g.attributes.position;
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i);
@@ -80,14 +81,20 @@ export function createVegetation(ctx: SceneCtx): Animated {
         [0, 0.6, 0, 0.26, loMats], [0.14, 0.54, 0.05, 0.19, loMats], [-0.13, 0.56, -0.06, 0.2, loMats],
         [0.03, 0.77, 0.03, 0.22, treeMats as MeshLambertMaterial[]], [-0.06, 0.72, 0.1, 0.16, treeMats as MeshLambertMaterial[]], [0.05, 0.92, -0.02, 0.13, hiMats],
       ];
+      if (full) {
+        crown.push([-0.1, 0.84, -0.09, 0.12, hiMats], [0.11, 0.7, -0.1, 0.13, treeMats as MeshLambertMaterial[]]);
+      } else {
+        crown.splice(4, 2, [0.05, 0.9, -0.02, 0.15, hiMats]);
+      }
       crown.forEach(([x, y, z, r, mats], k) => {
         put(blobs[k % 3], mats[ci], x * s, y * s, z * s, r * s).rotation.y = rand(i, k) * 6;
       });
     } else if (kind === 'pine') {
       put(trunk, trunkMat, 0, 0, 0, 0.6);
-      for (let k = 0; k < 4; k++) {
-        const sc = s * (1 - k * 0.2);
-        const y = (0.3 + k * 0.19) * s;
+      const tiers = full ? 5 : 3;
+      for (let k = 0; k < tiers; k++) {
+        const sc = s * (1 - (k * 0.8) / tiers);
+        const y = (0.3 + (k * 0.76) / tiers) * s;
         put(cone, k % 2 ? m : loMats[ci], 0, y, 0, sc).rotation.y = rand(i, k) * 3;
         if (snowing) put(snowCap, snowMat, 0, y + 0.15 * sc, 0, sc);
       }
@@ -105,14 +112,15 @@ export function createVegetation(ctx: SceneCtx): Animated {
       }
       const crown = new Group();
       crown.position.set(x, y, 0);
-      for (let k = 0; k < 8; k++) {
+      const fronds = full ? 10 : 6;
+      for (let k = 0; k < fronds; k++) {
         const f = new Mesh(frondGeo, frondMats[(ci + k) % frondMats.length]);
-        f.rotation.y = (k * Math.PI) / 4 + rand(i, k) * 0.4;
+        f.rotation.y = (k * Math.PI * 2) / fronds + rand(i, k) * 0.4;
         f.scale.setScalar(s * (0.85 + rand(k, i) * 0.3));
         f.castShadow = true;
         crown.add(f);
       }
-      for (let k = 0; k < 3; k++) {
+      for (let k = 0; k < (full ? 3 : 0); k++) {
         const nt = new Mesh(nut, nutMat);
         nt.position.set(Math.cos(k * 2.1) * 0.04, -0.03, Math.sin(k * 2.1) * 0.04);
         crown.add(nt);
