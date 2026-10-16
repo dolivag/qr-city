@@ -31,7 +31,7 @@ describe('resolveOptions', () => {
   it('validates enums and pixel ratio', () => {
     expect(() => resolveOptions({ data: 'x', view: 'side' as never })).toThrow(/Invalid view/);
     expect(() => resolveOptions({ data: 'x', errorCorrection: 'Z' as never })).toThrow(/Invalid errorCorrection/);
-    expect(() => resolveOptions({ data: 'x', quality: 'ultra' as never })).toThrow(/Invalid quality/);
+    expect(() => resolveOptions({ data: 'x', quality: 'bogus' as never })).toThrow(/Invalid quality/);
     expect(() => resolveOptions({ data: 'x', maxPixelRatio: 0 })).toThrow(/maxPixelRatio/);
   });
 });

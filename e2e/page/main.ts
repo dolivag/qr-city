@@ -1,3 +1,4 @@
+import '@qr-city/core/ultra';
 import { createQrCity, qrToPng, qrToSvg, styles } from '@qr-city/core';
 import type { QrCityController, QrCityOptions } from '@qr-city/core';
 

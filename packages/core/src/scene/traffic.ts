@@ -2,6 +2,7 @@ import { CylinderGeometry, Group, Mesh, SphereGeometry } from 'three';
 import type { Object3D } from 'three';
 import { pick, rand, ringPoint } from '../util/math';
 import { CAR_KIND_NAMES, createCarKit } from './cars';
+import { getUltra } from './ultraKit';
 import type { Animated, Run, SceneCtx } from './ctx';
 
 interface RingCar { obj: Object3D; type: 'ring'; R: number; s: number; v: number }
@@ -11,7 +12,7 @@ interface Person { obj: Object3D; R: number; s: number; v: number; phase: number
 /** Cars on the ring road and the streets, and pedestrians on the sidewalks. */
 export function createTraffic(ctx: SceneCtx, runs: Run[]): Animated {
   const { style: S, profile, decor, lambert, basic, geo, R } = ctx;
-  const full = profile.level === 'high';
+  const full = profile.level !== 'low';
   const kit = createCarKit(profile.detail, full);
   for (const k of Object.values(kit.kinds)) { geo(k.bodyGeo); geo(k.cabGeo); geo(k.roofGeo); }
   geo(kit.wheel); geo(kit.rim); geo(kit.lamp);
@@ -58,6 +59,7 @@ export function createTraffic(ctx: SceneCtx, runs: Run[]): Animated {
         car.add(m);
       }
     }
+    if (profile.level === 'ultra') getUltra()?.decorateCar(car, K, ctx, { paint, trim: tyre });
     decor.add(car);
     return car;
   };

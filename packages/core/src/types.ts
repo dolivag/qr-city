@@ -18,7 +18,7 @@ export type QrCityIntroStage = 'door' | 'entering' | 'threshold' | 'flying' | 'd
 export type QrCityView = 'city' | 'qr';
 
 /** `auto` picks `low` on touch devices with small screens. */
-export type QrCityQuality = 'auto' | 'high' | 'low';
+export type QrCityQuality = 'auto' | 'high' | 'low' | 'ultra';
 
 /** QR error-correction level. */
 export type QrCityEcc = 'L' | 'M' | 'Q' | 'H';

@@ -38,6 +38,11 @@ test('low quality keeps the code readable', async ({ page }) => {
   expect(decode(downscale(img, 3))).toBe(PAYLOADS.url);
 });
 
+test('ultra quality keeps the code readable', async ({ page }) => {
+  const img = await topDown(page, { data: PAYLOADS.url, style: 'costera', quality: 'ultra' });
+  expect(decode(downscale(img, 3))).toBe(PAYLOADS.url);
+});
+
 test('every error-correction level reads', async ({ page }) => {
   for (const errorCorrection of ['L', 'M', 'Q', 'H'] as const) {
     const img = await topDown(page, { data: PAYLOADS.url, style: 'moderna', errorCorrection });

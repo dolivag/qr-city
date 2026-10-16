@@ -4,6 +4,7 @@ import { rand, ringPoint } from '../util/math';
 import { col } from './color';
 import type { Animated, SceneCtx } from './ctx';
 import { blobGeo } from './geometry';
+import { getUltra } from './ultraKit';
 
 /** Trees (round, palm, pine or neon) and street lamps along the outer ring, plus lamps along the inner one. */
 export function createVegetation(ctx: SceneCtx): Animated {
@@ -22,7 +23,7 @@ export function createVegetation(ctx: SceneCtx): Animated {
   const trunkMat = lambert(neon ? 0x3a3360 : 0xc4a48d);
   const lampMat = lambert(neon ? 0x3a3360 : 0x9aa3b8);
   const bulbMat = basic(neon ? 0xff6fd8 : 0xfff6d8);
-  const full = profile.level === 'high';
+  const full = profile.level !== 'low';
   const snowing = S.flyers.kind === 'snow';
   const snowMat = lambert(0xffffff);
   const nutMat = lambert(0xb08a6a);
@@ -134,6 +135,7 @@ export function createVegetation(ctx: SceneCtx): Animated {
       ring.position.y = 0.6;
       o.add(new Mesh(neonPole, trunkMat), tip, ring);
     }
+    if (profile.level === 'ultra') getUltra()?.decorateTree(o, kind, ctx, s);
     return o;
   };
 
