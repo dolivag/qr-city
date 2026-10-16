@@ -1,5 +1,7 @@
 # qr-city
 
+[![CI](https://github.com/dolivag/qr-city/actions/workflows/ci.yml/badge.svg)](https://github.com/dolivag/qr-city/actions/workflows/ci.yml)
+
 Una ciudad 3D isométrica cuyos **tejados forman un código QR escaneable**. Cada módulo oscuro del QR es un edificio; los claros son calles y suelo. Al pasar a la vista cenital, el QR se lee.
 
 > Estado: núcleo (`@qr-city/core`), Web Component (`@qr-city/element`), wrappers de React, Vue y Angular, y demo con la intro de la puerta (`intro: 'door'`). Cuatro estilos de ciudad (*Moderna*, *Costera*, *Ciberpunk*, *Nevada*) y zoom.
@@ -53,7 +55,7 @@ npm run demo        # demo en http://localhost:5173
 npm run lint && npm run typecheck && npm test && npm run build
 ```
 
-Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest.
+Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest. La CI (GitHub Actions) ejecuta `lint`, `typecheck`, `test` y `build` en cada PR y en cada push a `master`; los mismos comandos funcionan en local.
 
 ## Notas de diseño
 
