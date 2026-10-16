@@ -1,0 +1,69 @@
+name: Escaneabilidad del QR
+
+# Renderiza la vista cenital en Chromium (WebGL por software) y la decodifica con jsQR, para cada
+# estilo y varios textos. Es el trabajo más lento (~5 min), así que solo corre cuando puede
+# romperse: cambios en el núcleo, en el propio test o en este workflow. No se ejecuta al fusionar
+# en master (el PR ya lo pasó). También se puede lanzar a mano desde la pestaña Actions.
+on:
+  pull_request:
+    paths:
+      - 'packages/core/src/**'
+      - 'packages/core/package.json'
+      - 'e2e/**'
+      - 'package-lock.json'
+      - '.github/workflows/escaneo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: escaneo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  escaneo:
+    name: Escaneabilidad del QR
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Chromium pesa ~150 MB: se descarga una vez por versión de Playwright.
+      - name: Versión de Playwright
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Restaurar caché de Chromium
+        id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Instalar Chromium y sus dependencias del sistema
+        if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Instalar solo las dependencias del sistema
+        if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Pruebas de escaneo
+        run: npx nx run e2e:e2e
+
+      - name: Informe de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-escaneo
+          path: e2e/playwright-report
+          retention-days: 7

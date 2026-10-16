@@ -55,7 +55,7 @@ npm run demo        # demo en http://localhost:5173
 npm run lint && npm run typecheck && npm test && npm run build
 ```
 
-Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest. La CI (GitHub Actions) ejecuta `lint`, `typecheck`, `test` y `build` en cada PR y en cada push a `master`; los mismos comandos funcionan en local.
+Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest. La CI (GitHub Actions) ejecuta `lint`, `typecheck`, `test` y `build` en cada PR y en cada push a `master` (no se ejecuta si solo cambia documentación); los mismos comandos funcionan en local.
 
 ### Test de escaneabilidad
 
@@ -67,6 +67,8 @@ npx nx run e2e:e2e
 ```
 
 Si ya tienes Chromium instalado, apunta a él con `PW_CHROMIUM_PATH=/ruta/a/chromium`. Un fallo sube el informe de Playwright como artefacto de la CI.
+
+Es el trabajo más lento (~5 min), así que vive en su propio workflow, [`escaneo.yml`](.github/workflows/escaneo.yml): solo corre en los PR que tocan `packages/core/src`, `e2e/` o el lockfile, nunca al fusionar en `master`, y se puede lanzar a mano desde la pestaña Actions.
 
 ## Notas de diseño
 
