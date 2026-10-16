@@ -1,6 +1,6 @@
 {
   "name": "@qr-city/core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A 3D isometric city whose rooftops form a scannable QR code. Framework-agnostic core built on three.js.",
   "keywords": ["qr", "qrcode", "three", "threejs", "3d", "isometric", "webgl"],
   "license": "MIT",

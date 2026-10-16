@@ -1,6 +1,6 @@
 {
   "name": "@qr-city/element",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "The <qr-city> Web Component: a 3D city whose rooftops form a scannable QR code. Works in any framework.",
   "keywords": ["qr", "qrcode", "web-component", "custom-element", "three", "3d"],
   "license": "MIT",
@@ -23,6 +23,6 @@
     "lint": "eslint src",
     "test": "vitest run"
   },
-  "dependencies": { "@qr-city/core": "0.0.0" },
+  "dependencies": { "@qr-city/core": "0.1.0" },
   "peerDependencies": { "three": ">=0.160.0 <1" }
 }
