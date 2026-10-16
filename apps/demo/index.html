@@ -3,26 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#EFEBE2" />
     <title>Ciudad QR</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..600&display=swap"
+    />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <main>
-      <header>
-        <h1>Ciudad QR</h1>
-        <p>Los tejados de la ciudad forman un código QR escaneable.</p>
+      <header class="head">
+        <h1>Ciudad <em>QR</em></h1>
+        <p class="lede">Una ciudad cuyos tejados forman un código QR. Desde arriba, se puede escanear.</p>
       </header>
-      <qr-city id="city" data="https://github.com/dolivag/qr-city" label="Ciudad 3D cuyos tejados forman un código QR"></qr-city>
-      <form id="form" autocomplete="off">
+
+      <section class="stage" aria-label="Ciudad 3D">
+        <qr-city id="city" data="https://github.com/dolivag/qr-city" label="Ciudad 3D cuyos tejados forman un código QR"></qr-city>
+      </section>
+
+      <form id="form" class="panel" autocomplete="off">
         <label for="data">Enlace o texto</label>
         <input id="data" type="text" value="https://github.com/dolivag/qr-city" maxlength="300" spellcheck="false" />
         <div class="row">
-          <button type="submit" class="primary">Construir ciudad</button>
+          <button type="submit" class="primary">Construir</button>
           <button type="button" id="toggle">Revelar QR</button>
           <button type="button" id="png">Descargar PNG</button>
         </div>
         <p id="msg" role="status"></p>
       </form>
+
+      <footer class="foot">
+        <span>@qr-city/element</span>
+        <span>three.js</span>
+        <a href="https://github.com/dolivag/qr-city">GitHub</a>
+      </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

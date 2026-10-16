@@ -9,5 +9,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint src"
   },
-  "dependencies": { "@qr-city/element": "0.0.0", "three": "^0.186.1" }
+  "dependencies": {
+    "@qr-city/core": "0.0.0",
+    "@qr-city/element": "0.0.0",
+    "three": "^0.186.1"
+  }
 }

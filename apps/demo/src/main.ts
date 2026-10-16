@@ -1,7 +1,11 @@
-import '@qr-city/element/define';
+import { defineQrCity } from '@qr-city/element';
 import type { QrCityElement } from '@qr-city/element';
+import { paper } from './paper-style';
 
 const city = document.querySelector<QrCityElement>('#city')!;
+// Set before registering the element so it builds once, with the right style.
+city.cityStyle = paper;
+defineQrCity();
 const form = document.querySelector<HTMLFormElement>('#form')!;
 const input = document.querySelector<HTMLInputElement>('#data')!;
 const toggle = document.querySelector<HTMLButtonElement>('#toggle')!;
