@@ -1,3 +1,9 @@
+// Fonts are bundled with the app (no third-party requests).
+import '@fontsource/young-serif/latin-400.css';
+import '@fontsource/young-serif/latin-ext-400.css';
+import '@fontsource-variable/hanken-grotesk/wght.css';
+import '@fontsource/fragment-mono/latin-400.css';
+import '@fontsource/fragment-mono/latin-ext-400.css';
 import { styles } from '@qr-city/core';
 import type { QrCityStyle } from '@qr-city/core';
 import { defineQrCity } from '@qr-city/element';
