@@ -1,7 +1,10 @@
 import type { QrCityStyle, QrCityStyleId } from '../types';
+import { ciberpunk } from './ciberpunk';
+import { costera } from './costera';
 import { moderna } from './moderna';
+import { nevada } from './nevada';
 
-export const styles: Readonly<Record<QrCityStyleId, QrCityStyle>> = Object.freeze({ moderna });
+export const styles: Readonly<Record<QrCityStyleId, QrCityStyle>> = Object.freeze({ moderna, costera, ciberpunk, nevada });
 
 export function resolveStyle(style: QrCityStyleId | QrCityStyle): QrCityStyle {
   if (typeof style === 'string') {

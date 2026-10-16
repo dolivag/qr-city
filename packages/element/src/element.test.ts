@@ -7,6 +7,7 @@ function fakeController() {
   return {
     view: 'city' as 'city' | 'qr',
     openDoor: vi.fn(), continueIntro: vi.fn(), skipIntro: vi.fn(), stage: 'done',
+    zoom: 1, setZoom: vi.fn(), zoomBy: vi.fn(), resetZoom: vi.fn(),
     reveal: vi.fn(), setView: vi.fn(), toggleView: vi.fn(), setStyle: vi.fn(),
     update: vi.fn(), toPNG: vi.fn(async () => new Blob()), play: vi.fn(), pause: vi.fn(),
     resize: vi.fn(), dispose: vi.fn(), canvas: document.createElement('canvas'),
@@ -147,6 +148,23 @@ describe('<qr-city>', () => {
     expect(c.openDoor).toHaveBeenCalled();
     expect(c.continueIntro).toHaveBeenCalled();
     expect(c.skipIntro).toHaveBeenCalled();
+  });
+
+  it('maps the zoom attributes, re-emits zoom changes and forwards the zoom methods', () => {
+    const el = make({ data: 'a', zoomable: 'false', 'max-zoom': '4', 'wheel-zoom': 'always' });
+    document.body.append(el);
+    expect(lastOptions).toMatchObject({ zoomable: false, maxZoom: 4, wheelZoom: 'always' });
+    const seen: number[] = [];
+    document.body.addEventListener('qr-city-zoomchange', (e) => seen.push((e as CustomEvent).detail.zoom));
+    (lastOptions.onZoomChange as (z: number) => void)(2.5);
+    expect(seen).toEqual([2.5]);
+    el.zoomBy(1.5);
+    el.setZoom(3, { immediate: true });
+    el.resetZoom();
+    const c = controllers[0] as unknown as Record<string, ReturnType<typeof vi.fn>>;
+    expect(c.zoomBy).toHaveBeenCalledWith(1.5, undefined);
+    expect(c.setZoom).toHaveBeenCalledWith(3, { immediate: true });
+    expect(c.resetZoom).toHaveBeenCalled();
   });
 
   it('forwards imperative methods', () => {

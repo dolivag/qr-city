@@ -91,7 +91,7 @@ export function createDoorKit(tracker: ResourceTracker, theme: QrCityDoorTheme, 
     const hinge = new Group();
     hinge.position.set(-0.63, 0, 0);
     g.add(hinge);
-    add(hinge, G.panel, mats.panel, 0.63, 0.02, 0, 2.46);
+    add(hinge, G.panel, mats.panel, 0.63, 0.02, 0, 2.58);
     for (const s of [1, -1]) {
       add(hinge, G.raised, mats.raised, 0.63, 0.2, s * 0.07, 0.76);
       add(hinge, G.rose, mats.brass, 1.1, 1.1, s * 0.075);
@@ -178,8 +178,8 @@ export function createDoorScene(theme: QrCityDoorTheme, profile: QualityProfile)
   step.receiveShadow = true;
   scene.add(step);
 
-  const glow = new Mesh(kit.geo(new PlaneGeometry(1.26, 2.5)), kit.basic(theme.glow, { fog: false }));
-  glow.position.set(0, 1.33, -0.12);
+  const glow = new Mesh(kit.geo(new PlaneGeometry(1.26, 2.58)), kit.basic(theme.glow, { fog: false }));
+  glow.position.set(0, 1.37, -0.12);
   scene.add(glow);
 
   const mat = new Mesh(kit.geo(roundedPrism(0.95, 0.5, 0.08)), kit.lambert(theme.mat));

@@ -11,26 +11,26 @@ import {
   MeshLambertMaterial,
   PlaneGeometry,
   RepeatWrapping,
-  Shape,
-  ShapeGeometry,
   ShadowMaterial,
   SphereGeometry,
-  Color,
   Vector3,
 } from 'three';
-import type { MeshBasicMaterialParameters, MeshLambertMaterialParameters ,
-  BufferGeometry,
-  Object3D} from 'three';
+import type { BufferGeometry, MeshBasicMaterialParameters, MeshLambertMaterialParameters ,
+  Color} from 'three';
 import type { QrMatrix } from '../qr/matrix';
 import type { QualityProfile } from '../runtime/quality';
 import { ResourceTracker } from '../runtime/tracker';
-import type { QrCityStyle } from '../types';
-import { clamp01, pick, rand, ringPoint, smooth } from '../util/math';
-import { CAR_KIND_NAMES, createCarKit } from './cars';
-import { col } from './color';
-import { createDoorKit } from './door';
-import { blobGeo, roundedPrism } from './geometry';
 import { moderna } from '../styles/moderna';
+import type { QrCityStyle } from '../types';
+import { clamp01, pick, rand, smooth } from '../util/math';
+import { createCoast } from './coast';
+import { col } from './color';
+import type { Run, SceneCtx } from './ctx';
+import { createDoorKit } from './door';
+import { createFlyers } from './flyers';
+import { roundedPrism } from './geometry';
+import { createTraffic } from './traffic';
+import { createVegetation } from './vegetation';
 
 /** three ≥ r155 dropped the legacy ×π light scaling; this keeps the look of the original r128 prototype. */
 const LIGHT_SCALE = Math.PI;
@@ -65,19 +65,14 @@ export interface City {
   root: Group;
   /** Seconds from the first frame until every building has risen. */
   riseDuration: number;
-  /** Half the side of the QR area plus its quiet zone, in modules. */
+  /** Side of the city slab, in modules. */
   size: number;
   door: DoorInfo | null;
   update(frame: CityFrame): void;
+  /** Points the sun's shadow at what is on screen, so shadows stay sharp when zoomed in. */
+  setFocus(x: number, z: number, zoom: number): void;
   dispose(): void;
 }
-
-interface RingCar { obj: Object3D; type: 'ring'; R: number; s: number; v: number }
-interface RunCar { obj: Object3D; type: 'run'; run: Run; s: number; v: number; dir: number }
-interface Person { obj: Object3D; R: number; s: number; v: number; phase: number }
-interface Flock { group: Group; birds: Object3D[]; R: number; h: number; speed: number; a: number }
-interface Run { axis: 'x' | 'z'; k: number; a: number; b: number; edge: boolean }
-interface Bird extends Object3D { userData: { pl: Object3D; pr: Object3D; phase: number; flapSpeed: number } }
 
 export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityProfile, options: CityOptions = {}): City {
   const tracker = new ResourceTracker();
@@ -107,10 +102,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   const half = n / 2;
   const quiet = S.quietZone;
   const size = n + quiet * 2;
-  const R_road = half + 2.1;
-  const R_in = half + 0.75;
-  const R_out = half + 3.55;
-  const R_tree = half + 4.25;
+  const R = { road: half + 2.1, inner: half + 0.75, outer: half + 3.55, tree: half + 4.25 };
   const toW = (i: number) => i - half + 0.5;
 
   // ---- Streets: runs of ≥4 light modules; the ones touching the border connect to the ring road
@@ -126,8 +118,8 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
             runs.push({
               axis,
               k: toW(k),
-              a: start === 0 ? -R_road : toW(start),
-              b: i === n ? R_road : toW(i - 1),
+              a: start === 0 ? -R.road : toW(start),
+              b: i === n ? R.road : toW(i - 1),
               edge: start === 0 || i === n,
             });
           }
@@ -145,14 +137,45 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   cv.width = cv.height = Math.round(size * px);
   const g = cv.getContext('2d') as CanvasRenderingContext2D;
   const W = (x: number) => (x + size / 2) * px;
-  g.fillStyle = P.walk;
-  g.fillRect(0, 0, cv.width, cv.height);
+  const rrect = (x: number, y: number, w: number, h: number, r: number) => {
+    g.beginPath();
+    if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
+    g.fill();
+  };
+  if (P.water) {
+    g.fillStyle = P.water;
+    g.fillRect(0, 0, cv.width, cv.height);
+    g.strokeStyle = 'rgba(255,255,255,0.6)';
+    g.lineWidth = 0.05 * px;
+    for (let i = 0; i < 40; i++) {
+      const x = rand(i, 1) * cv.width;
+      const y = rand(1, i) * cv.height;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.quadraticCurveTo(x + 0.3 * px, y - 0.15 * px, x + 0.6 * px, y);
+      g.stroke();
+    }
+    g.fillStyle = P.walk;
+    const R_sand = half + 4.75;
+    rrect(W(-R_sand), W(-R_sand), 2 * R_sand * px, 2 * R_sand * px, 0.8 * px);
+  } else {
+    g.fillStyle = P.walk;
+    g.fillRect(0, 0, cv.width, cv.height);
+  }
   g.fillStyle = P.ground;
   g.fillRect(W(-half - 0.25), W(-half - 0.25), (n + 0.5) * px, (n + 0.5) * px);
+  if (P.grid) {
+    g.strokeStyle = P.grid;
+    g.lineWidth = 0.03 * px;
+    for (let i = -half; i <= half; i++) {
+      g.beginPath(); g.moveTo(W(i), W(-half)); g.lineTo(W(i), W(half)); g.stroke();
+      g.beginPath(); g.moveTo(W(-half), W(i)); g.lineTo(W(half), W(i)); g.stroke();
+    }
+  }
   g.lineCap = 'round';
   g.strokeStyle = P.road;
   g.lineWidth = 1.5 * px;
-  g.strokeRect(W(-R_road), W(-R_road), 2 * R_road * px, 2 * R_road * px);
+  g.strokeRect(W(-R.road), W(-R.road), 2 * R.road * px, 2 * R.road * px);
   g.lineWidth = 0.72 * px;
   for (const r of runs) {
     g.beginPath();
@@ -164,7 +187,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   g.setLineDash([0.35 * px, 0.35 * px]);
   g.lineWidth = 0.06 * px;
   g.lineCap = 'butt';
-  g.strokeRect(W(-R_road), W(-R_road), 2 * R_road * px, 2 * R_road * px);
+  g.strokeRect(W(-R.road), W(-R.road), 2 * R.road * px, 2 * R.road * px);
   for (const r of runs) {
     g.beginPath();
     if (r.axis === 'x') { g.moveTo(W(r.a + 0.3), W(r.k)); g.lineTo(W(r.b - 0.3), W(r.k)); }
@@ -173,7 +196,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   }
   g.setLineDash([]);
   const groundTex = tracker.track(new CanvasTexture(cv));
-  groundTex.anisotropy = 4;
+  groundTex.anisotropy = profile.anisotropy;
 
   const baseH = 1.4;
   const base = new Mesh(geo(roundedPrism(size, size, 1.2, seg * 2)), lambert(P.base));
@@ -202,27 +225,52 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
 
   // ---- Buildings: every dark module is a building; roofs are flat, unlit, dark
   const roofMat = basic(P.roof);
+  const neon = S.buildings.neon;
   const facade = (() => {
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
-    const f = c.getContext('2d') as CanvasRenderingContext2D;
-    const round = (x: number, y: number, w: number, h: number, r: number) => {
+    const fp = profile.facadePx / 64;
+    const mk = () => {
+      const c = document.createElement('canvas');
+      c.width = c.height = Math.round(64 * fp);
+      const f = c.getContext('2d') as CanvasRenderingContext2D;
+      f.scale(fp, fp);
+      return f;
+    };
+    const round = (f: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
       f.beginPath();
       if (f.roundRect) f.roundRect(x, y, w, h, r); else f.rect(x, y, w, h);
       f.fill();
     };
-    f.fillStyle = '#ffffff';
-    f.fillRect(0, 0, 64, 64);
-    f.fillStyle = S.buildings.windowColor;
-    round(12, 18, 40, 28, 8);
-    f.fillStyle = 'rgba(255,255,255,0.55)';
-    round(15, 21, 16, 6, 3);
-    const t = tracker.track(new CanvasTexture(c));
-    t.wrapS = t.wrapT = RepeatWrapping;
-    t.anisotropy = 4;
-    return t;
+    const a = mk();
+    a.fillStyle = '#ffffff';
+    a.fillRect(0, 0, 64, 64);
+    a.fillStyle = S.buildings.windowColor;
+    round(a, 12, 18, 40, 28, 8);
+    a.fillStyle = 'rgba(255,255,255,0.55)';
+    round(a, 15, 21, 16, 6, 3);
+    const map = tracker.track(new CanvasTexture(a.canvas));
+    let mask: CanvasTexture | null = null;
+    if (neon) {
+      const b = mk();
+      b.fillStyle = '#000';
+      b.fillRect(0, 0, 64, 64);
+      b.fillStyle = '#fff';
+      round(b, 12, 18, 40, 28, 8);
+      b.fillStyle = '#000';
+      b.fillRect(30, 18, 4, 28);
+      mask = tracker.track(new CanvasTexture(b.canvas));
+    }
+    for (const t of [map, mask]) {
+      if (!t) continue;
+      t.wrapS = t.wrapT = RepeatWrapping;
+      t.anisotropy = profile.anisotropy;
+    }
+    return { map, mask };
   })();
-  const towerMats = P.towers.map((c) => lambert(c, { map: facade }));
+  const towerMats = P.towers.map((c, i) =>
+    neon
+      ? lambert(c, { map: facade.map, emissive: col(neon[i % neon.length]), emissiveMap: facade.mask, emissiveIntensity: 0.9 })
+      : lambert(c, { map: facade.map }),
+  );
   const houseMats = P.houses.map((c) => lambert(c));
 
   const towerCache = new Map<number, BufferGeometry>();
@@ -289,7 +337,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
         const walls = new Mesh(houseGeo, pick(houseMats, rand(r + 9, c)));
         walls.scale.y = wallH;
         const roof = new Mesh(roofGeo, roofMat);
-        roof.scale.set(1, 0.38, 1);
+        roof.scale.set(1, S.vegetation.kind === 'pine' ? 0.6 : 0.38, 1);
         roof.position.y = wallH;
         grp.add(walls, roof);
       } else {
@@ -340,8 +388,8 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     rig.scale.setScalar(0.17);
     const cityDoor = dk.buildDoor();
     rig.add(cityDoor.group);
-    const warm = new Mesh(dk.geo(new PlaneGeometry(1.26, 2.5)), dk.basic(T.warm));
-    warm.position.set(0, 1.25, 0);
+    const warm = new Mesh(dk.geo(new PlaneGeometry(1.26, 2.6)), dk.basic(T.warm));
+    warm.position.set(0, 1.3, 0);
     rig.add(warm);
     const arm = new Mesh(dk.geo(roundedPrism(0.12, 0.3, 0.04)), dk.mats.dark);
     arm.scale.y = 0.08;
@@ -395,183 +443,33 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     doorInfo = { d, facade, hinge: cityDoor.hinge };
   }
 
-  // ---- Cars
-  const kit = createCarKit();
-  Object.values(kit.kinds).forEach((k) => { geo(k.bodyGeo); geo(k.cabGeo); geo(k.roofGeo); });
-  geo(kit.wheel); geo(kit.rim); geo(kit.lamp);
-  const glass = S.traffic.glow ? basic(0x1a1430) : lambert(0x7d8aa6);
-  const tyre = lambert(0x4a5163);
-  const rim = lambert(0xe8ebf2);
-  const headM = basic(0xfff8e0);
-  const tailM = basic(0xff7b7b);
-  const makeCar = (i: number) => {
-    const car = new Group();
-    const K = kit.kinds[pick(CAR_KIND_NAMES, rand(i, 21))];
-    const color = S.traffic.carColors[i % S.traffic.carColors.length];
-    const paint = S.traffic.glow ? basic(color) : lambert(color);
-    const body = new Mesh(K.bodyGeo, paint);
-    const cab = new Mesh(K.cabGeo, glass);
-    const roof = new Mesh(K.roofGeo, paint);
-    body.castShadow = cab.castShadow = true;
-    car.add(body, cab, roof);
-    for (const x of [K.front - 0.09, K.rear + 0.09]) {
-      for (const z of [-0.105, 0.105]) {
-        const w = new Mesh(kit.wheel, tyre);
-        const rm = new Mesh(kit.rim, rim);
-        w.position.set(x, 0.055, z);
-        rm.position.set(x, 0.055, z);
-        car.add(w, rm);
-      }
-    }
-    for (const z of [-0.07, 0.07]) {
-      const hl = new Mesh(kit.lamp, headM);
-      hl.position.set(K.front, 0.125, z);
-      const tl = new Mesh(kit.lamp, tailM);
-      tl.position.set(K.rear, 0.13, z);
-      car.add(hl, tl);
-    }
-    decor.add(car);
-    return car;
-  };
-  const cars: (RingCar | RunCar)[] = [];
-  const perim = 8 * R_road;
-  for (let i = 0; i < profile.ringCars; i++) {
-    const lane = i % 2 ? 1 : -1;
-    cars.push({
-      obj: makeCar(i), type: 'ring', R: R_road + lane * 0.36,
-      s: (i / profile.ringCars) * perim, v: (0.9 + rand(i, 3) * 0.5) * (lane > 0 ? 1 : -1),
-    });
-  }
-  runs.slice().sort((p, q) => Number(q.edge) - Number(p.edge) || rand(p.k, p.a) - rand(q.k, q.a))
-    .slice(0, profile.runCars)
-    .forEach((run, i) => {
-      cars.push({ obj: makeCar(i + 3), type: 'run', run, s: rand(i, 11), v: 0.6 + rand(11, i) * 0.5, dir: rand(i, 12) > 0.5 ? 1 : -1 });
-    });
+  // ---- Traffic, vegetation, coast and flyers
+  const ctx: SceneCtx = { style: S, profile, tracker, lambert, basic, geo, decor, root, half, size, R };
+  const modules = [createTraffic(ctx, runs), createVegetation(ctx), createCoast(ctx), createFlyers(ctx)];
+  const flyers = modules[3] as ReturnType<typeof createFlyers>;
 
-  // ---- Pedestrians
-  const personBody = geo(new CylinderGeometry(0.05, 0.065, 0.17, 12).translate(0, 0.12, 0));
-  const personHead = geo(new SphereGeometry(0.052, 14, 10).translate(0, 0.26, 0));
-  const skin = lambert(0xf2d2bb);
-  const people: Person[] = [];
-  for (let i = 0; i < profile.people; i++) {
-    const p = new Group();
-    const b = new Mesh(personBody, lambert(S.traffic.carColors[i % S.traffic.carColors.length]));
-    b.castShadow = true;
-    p.add(b, new Mesh(personHead, skin));
-    decor.add(p);
-    const R = (i % 2 ? R_out - 0.25 : R_in) + (rand(i, 5) - 0.5) * 0.25;
-    people.push({ obj: p, R, s: rand(i, 1) * 8 * R, v: (0.12 + rand(1, i) * 0.12) * (rand(i, 2) > 0.5 ? 1 : -1), phase: rand(i, 4) * 6 });
-  }
-
-  // ---- Trees and street lamps
-  const blobs = [blobGeo(1, profile.detail), blobGeo(2.7, profile.detail), blobGeo(4.1, profile.detail)].map(geo);
-  const treeColors = S.vegetation.colors;
-  const treeMats = treeColors.map((c) => lambert(c));
-  const tint = (hex: string, k: number) => {
-    const c = col(hex);
-    return k >= 0 ? c.lerp(new Color(1, 1, 1), k) : c.multiplyScalar(1 + k);
-  };
-  const hiMats = treeColors.map((c) => lambert(tint(c, 0.28)));
-  const loMats = treeColors.map((c) => lambert(tint(c, -0.12)));
-  const trunkMat = lambert(0xc4a48d);
-  const lampMat = lambert(0x9aa3b8);
-  const bulbMat = basic(0xfff6d8);
-  const lampGeo = geo(new CylinderGeometry(0.022, 0.022, 0.7, 8).translate(0, 0.35, 0));
-  const bulbGeo = geo(new SphereGeometry(0.05, 10, 8).translate(0, 0.72, 0));
-  const trunk = geo(new CylinderGeometry(0.025, 0.045, 0.4, 10).translate(0, 0.2, 0));
-  const branch = geo(new CylinderGeometry(0.01, 0.018, 0.2, 6).translate(0, 0.1, 0));
-  const makeLamp = () => {
-    const l = new Group();
-    l.add(new Mesh(lampGeo, lampMat), new Mesh(bulbGeo, bulbMat));
-    return l;
-  };
-  const makeTree = (i: number) => {
-    const o = new Group();
-    const ci = Math.floor(rand(i, 9) * treeColors.length) % treeColors.length;
-    const s = 0.85 + rand(i, 8) * 0.4;
-    const put = (g2: BufferGeometry, mt: MeshLambertMaterial, x: number, y: number, z: number, sc?: number) => {
-      const m = new Mesh(g2, mt);
-      m.position.set(x, y, z);
-      if (sc) m.scale.setScalar(sc);
-      m.castShadow = true;
-      o.add(m);
-      return m;
-    };
-    put(trunk, trunkMat, 0, 0, 0);
-    put(branch, trunkMat, 0, 0.3, 0).rotation.z = 0.7;
-    put(branch, trunkMat, 0, 0.34, 0).rotation.z = -0.6;
-    const crown: [number, number, number, number, MeshLambertMaterial[]][] = [
-      [0, 0.6, 0, 0.26, loMats], [0.14, 0.54, 0.05, 0.19, loMats], [-0.13, 0.56, -0.06, 0.2, loMats],
-      [0.03, 0.77, 0.03, 0.22, treeMats], [-0.06, 0.72, 0.1, 0.16, treeMats], [0.05, 0.92, -0.02, 0.13, hiMats],
-    ];
-    crown.forEach(([x, y, z, r, mats], k) => {
-      put(blobs[k % 3], mats[ci], x * s, y * s, z * s, r * s).rotation.y = rand(i, k) * 6;
-    });
-    return o;
-  };
-  const props: Object3D[] = [];
-  const steps = Math.floor((8 * R_tree) / profile.propStep);
-  for (let i = 0; i < steps; i++) {
-    const [x, z] = ringPoint(R_tree, i * profile.propStep + 0.3);
-    const o = i % 5 === 4 ? makeLamp() : makeTree(i);
-    o.position.set(x, 0, z);
-    decor.add(o);
-    props.push(o);
-  }
-  for (let i = 0; i < Math.floor((8 * R_in) / 2.2); i++) {
-    const [x, z] = ringPoint(R_in + 0.2, i * 2.2 + 1);
-    const l = makeLamp();
-    l.position.set(x, 0, z);
-    decor.add(l);
-    props.push(l);
-  }
-
-  // ---- Birds
-  const flocks: Flock[] = [];
-  {
-    const bodyGeo = geo(new SphereGeometry(0.09, 12, 8).scale(1.8, 0.8, 0.8));
-    const ws = new Shape();
-    ws.moveTo(0, 0);
-    ws.quadraticCurveTo(0.12, 0.08, 0.04, 0.42);
-    ws.quadraticCurveTo(-0.08, 0.2, -0.1, 0);
-    ws.lineTo(0, 0);
-    const wingGeo = geo(new ShapeGeometry(ws, 8).rotateX(-Math.PI / 2));
-    const mat = lambert(S.flyers.color, { side: DoubleSide });
-    for (let f = 0; f < profile.flocks; f++) {
-      const fl: Flock = {
-        group: new Group(), birds: [], R: half * (0.45 + f * 0.25), h: 13 + f * 1.8,
-        speed: (0.16 + f * 0.04) * (f % 2 ? -1 : 1), a: f * 2.1,
-      };
-      const count = 5 + f;
-      for (let b = 0; b < count; b++) {
-        const bird = new Group() as unknown as Bird;
-        const pl = new Group();
-        const pr = new Group();
-        const wl = new Mesh(wingGeo, mat);
-        const wr = new Mesh(wingGeo, mat);
-        wr.scale.z = -1;
-        pl.add(wl);
-        pr.add(wr);
-        bird.add(new Mesh(bodyGeo, mat), pl, pr);
-        const sd = b % 2 ? 1 : -1;
-        const row = Math.ceil(b / 2);
-        bird.position.set(-row * 0.55, (rand(b, f) - 0.5) * 0.4, sd * row * 0.45);
-        bird.userData = { pl, pr, phase: rand(b, f * 3) * 6, flapSpeed: 110 };
-        fl.group.add(bird);
-        fl.birds.push(bird);
-      }
-      decor.add(fl.group);
-      flocks.push(fl);
-    }
-  }
-
+  // ---- Sun shadow: covers the whole city, or the part on screen when zoomed in
   const sc = sun.shadow.camera;
-  sc.left = sc.bottom = -size * 0.85;
-  sc.right = sc.top = size * 0.85;
-  sc.near = 1;
-  sc.far = 200;
-  sc.updateProjectionMatrix();
-  sun.position.set(-size * 0.9, size * 1.6, size * 0.5);
+  const lightOffset = new Vector3(-size * 0.9, size * 1.6, size * 0.5);
+  let focus = '';
+  function setFocus(x: number, z: number, zoom: number) {
+    const key = `${x.toFixed(2)},${z.toFixed(2)},${zoom.toFixed(2)}`;
+    if (key === focus) return;
+    focus = key;
+    const full = size * 0.85;
+    const ext = zoom <= 1 ? full : Math.min(full, Math.max(6, (full / zoom) * 1.35));
+    sc.left = sc.bottom = -ext;
+    sc.right = sc.top = ext;
+    sc.near = 1;
+    sc.far = 200;
+    sc.updateProjectionMatrix();
+    const cx = zoom <= 1 ? 0 : x;
+    const cz = zoom <= 1 ? 0 : z;
+    sun.target.position.set(cx, 0, cz);
+    sun.position.set(cx + lightOffset.x, lightOffset.y, cz + lightOffset.z);
+    sun.target.updateMatrixWorld();
+  }
+  setFocus(0, 0, 1);
 
   // ---- Animation
   let born = Number.NaN;
@@ -586,49 +484,13 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     }
     const vis = 1 - smooth(0.05, 0.55, t);
     decor.visible = vis > 0.01;
+    flyers.setVisibility(vis);
     if (shadowMat) shadowMat.opacity = 0.14 * (1 - smooth(0.2, 0.9, t));
     const pop = reduce ? 1 : clamp01((el - 0.6) / 0.8);
     const k = vis * (1 - Math.pow(1 - pop, 3));
-    const move = reduce ? 0 : dt;
-
     if (decor.visible) {
-      for (const c of cars) {
-        if (c.type === 'ring') {
-          c.s += c.v * move;
-          const [x, z, ang] = ringPoint(c.R, c.s);
-          c.obj.position.set(x, 0, z);
-          c.obj.rotation.y = -(ang + (c.v < 0 ? Math.PI : 0));
-        } else {
-          const L = c.run.b - c.run.a;
-          c.s += (c.v * move * c.dir) / Math.max(1, L);
-          if (c.s > 1) { c.s = 1; c.dir = -1; }
-          if (c.s < 0) { c.s = 0; c.dir = 1; }
-          const along = c.run.a + c.s * L;
-          const fixed = c.run.k;
-          if (c.run.axis === 'x') { c.obj.position.set(along, 0, fixed + 0.17 * c.dir); c.obj.rotation.y = c.dir > 0 ? 0 : Math.PI; }
-          else { c.obj.position.set(fixed - 0.17 * c.dir, 0, along); c.obj.rotation.y = c.dir > 0 ? -Math.PI / 2 : Math.PI / 2; }
-        }
-        c.obj.scale.setScalar(k);
-      }
-      for (const p of people) {
-        p.s += p.v * move;
-        const [x, z, ang] = ringPoint(p.R, p.s);
-        p.obj.position.set(x, Math.abs(Math.sin(now / 160 + p.phase)) * 0.03, z);
-        p.obj.rotation.y = -ang;
-        p.obj.scale.setScalar(k);
-      }
-      for (const pr of props) pr.scale.setScalar(k);
-      for (const f of flocks) {
-        f.a += f.speed * move;
-        f.group.position.set(Math.cos(f.a) * f.R, f.h + Math.sin(now / 900 + f.R) * 0.4, Math.sin(f.a) * f.R);
-        f.group.rotation.y = -f.a - (f.speed > 0 ? Math.PI / 2 : -Math.PI / 2);
-        f.group.scale.setScalar(k);
-        for (const b of f.birds as Bird[]) {
-          const flap = reduce ? 0.3 : Math.sin(now / b.userData.flapSpeed + b.userData.phase) * 0.8;
-          b.userData.pl.rotation.x = flap;
-          b.userData.pr.rotation.x = -flap;
-        }
-      }
+      const frame = { now, dt, move: reduce ? 0 : dt, k, vis };
+      for (const m of modules) m?.update(frame);
     }
     city.position.y = reduce || !bob ? 0 : Math.sin(now / 1600) * 0.12 * (1 - t);
   }
@@ -641,5 +503,5 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     root.clear();
   }
 
-  return { root, riseDuration, size, door: doorInfo, update, dispose };
+  return { root, riseDuration, size, door: doorInfo, update, setFocus, dispose };
 }

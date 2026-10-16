@@ -1,0 +1,35 @@
+import type { QrCityStyle } from '../types';
+
+export const ciberpunk: QrCityStyle = {
+  id: 'ciberpunk',
+  name: 'Ciberpunk',
+  description: 'Torres de neón, calles brillantes y drones',
+  palette: {
+    sky: '#1a1430',
+    hemiSky: '#7a6ae0',
+    hemiGround: '#221a40',
+    hemiIntensity: 0.55,
+    sun: '#ff9de2',
+    sunIntensity: 0.35,
+    walk: '#e2e5ff',
+    ground: '#e6e9ff',
+    road: '#d3dbff',
+    dash: '#ff8fe0',
+    grid: '#cfd4fb',
+    base: '#2a2150',
+    roof: '#0f0c1f',
+    towers: ['#3b2d6b', '#2b3d70', '#4a2860', '#23395a'],
+    houses: ['#3b2d6b'],
+  },
+  buildings: {
+    houseBias: -1,
+    skyBias: 0.35,
+    heightMul: 1.35,
+    windowColor: '#ffffff',
+    neon: ['#5ef0ff', '#ff6fd8', '#ffe36e', '#9b8cff'],
+  },
+  vegetation: { kind: 'neon', colors: ['#5ef0ff', '#ff6fd8'] },
+  traffic: { carColors: ['#5ef0ff', '#ff6fd8', '#ffe36e', '#9b8cff'], glow: true },
+  flyers: { kind: 'drones', color: '#5ef0ff' },
+  quietZone: 5,
+};

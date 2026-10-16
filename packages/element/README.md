@@ -22,6 +22,9 @@ Si prefieres registrarlo tú: `import { defineQrCity } from '@qr-city/element'; 
 | `intro` | `intro` | `none` \| `door`. Si cambia, el elemento se reinicia. |
 | `pause-at-threshold` | `pauseAtThreshold` | Con `intro="door"`, espera en la pantalla blanca hasta `continueIntro()`. |
 | `door-label` | `doorLabel` | Nombre accesible mientras la puerta espera. |
+| `zoomable` | `zoomable` | `zoomable="false"` desactiva el zoom y el desplazamiento. |
+| `max-zoom` | `maxZoom` | Zoom máximo (8 por defecto). |
+| `wheel-zoom` | `wheelZoom` | `ctrl` (por defecto) \| `always` \| `off`. |
 | `view` | `view` | `city` \| `qr`. |
 | `error-correction` | `errorCorrection` | `L` `M` `Q` `H`. |
 | `quality` | `quality` | `auto` `high` `low`. |
@@ -30,10 +33,10 @@ Si prefieres registrarlo tú: `import { defineQrCity } from '@qr-city/element'; 
 | `background` | `background` | Color CSS o `transparent`. |
 | `label` | `label` | Nombre accesible. |
 
-Métodos: `openDoor()`, `continueIntro()`, `skipIntro()`, `reveal()`, `setView()`, `toggleView()`, `toPNG()`, `play()`, `pause()`, y `controller` (el controlador de `@qr-city/core`).
+Métodos: `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `reveal()`, `setView()`, `toggleView()`, `toPNG()`, `play()`, `pause()`, y `controller` (el controlador de `@qr-city/core`).
 
-Propiedad de solo lectura `stage` (etapa de la intro).
+Propiedades de solo lectura `stage` (etapa de la intro) y `zoom`.
 
-Eventos (burbujean y atraviesan el shadow DOM): `qr-city-reveal`, `qr-city-introstage` (`detail.stage`), `qr-city-viewchange` (`detail.view`), `qr-city-error` (`detail.error`).
+Eventos (burbujean y atraviesan el shadow DOM): `qr-city-reveal`, `qr-city-introstage` (`detail.stage`), `qr-city-zoomchange` (`detail.zoom`), `qr-city-viewchange` (`detail.view`), `qr-city-error` (`detail.error`).
 
 El elemento mide por defecto un cuadrado del ancho de su contenedor; ponle tamaño con CSS. Se pausa fuera de pantalla (`IntersectionObserver`) y libera todo al desconectarse del DOM.

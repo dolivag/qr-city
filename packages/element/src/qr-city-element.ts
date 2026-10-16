@@ -17,7 +17,7 @@ const Base: typeof HTMLElement =
 
 const ATTRIBUTES = [
   'data', 'style-name', 'intro', 'view', 'error-correction', 'quality',
-  'animate', 'interactive', 'background', 'label', 'pause-at-threshold', 'door-label',
+  'animate', 'interactive', 'background', 'label', 'pause-at-threshold', 'door-label', 'zoomable', 'max-zoom', 'wheel-zoom',
 ] as const;
 
 const TEMPLATE_CSS = `
@@ -30,6 +30,7 @@ export interface QrCityEventMap {
   'qr-city-reveal': CustomEvent<void>;
   'qr-city-viewchange': CustomEvent<{ view: QrCityView }>;
   'qr-city-introstage': CustomEvent<{ stage: QrCityIntroStage }>;
+  'qr-city-zoomchange': CustomEvent<{ zoom: number }>;
   'qr-city-error': CustomEvent<{ error: Error }>;
 }
 
@@ -38,7 +39,8 @@ export interface QrCityEventMap {
  *
  * Attributes: `data`, `style-name`, `intro`, `view`, `error-correction`, `quality`,
  * `animate` (`auto` | `true` | `false`; property `animated`), `interactive` (`false` disables clicks), `background`, `label`,
- * `pause-at-threshold` (with `intro="door"`: wait at the white screen until `continueIntro()`), `door-label`.
+ * `pause-at-threshold` (with `intro="door"`: wait at the white screen until `continueIntro()`), `door-label`,
+ * `zoomable` (`false` disables zoom and pan), `max-zoom`, `wheel-zoom` (`ctrl` | `always` | `off`).
  * Size it with CSS (default: a square as wide as its container).
  */
 export class QrCityElement extends Base {
@@ -101,6 +103,18 @@ export class QrCityElement extends Base {
   get doorLabel(): string | undefined { return this.#opts.doorLabel; }
   set doorLabel(v: string | undefined) { this.#set({ doorLabel: v }); }
 
+  get zoomable(): boolean | undefined { return this.#opts.zoomable; }
+  set zoomable(v: boolean | undefined) { this.#set({ zoomable: v }); }
+
+  get maxZoom(): number | undefined { return this.#opts.maxZoom; }
+  set maxZoom(v: number | undefined) { this.#set({ maxZoom: v }); }
+
+  get wheelZoom(): 'ctrl' | 'always' | 'off' | undefined { return this.#opts.wheelZoom; }
+  set wheelZoom(v: 'ctrl' | 'always' | 'off' | undefined) { this.#set({ wheelZoom: v }); }
+
+  /** Current zoom (1 = the whole city in view). */
+  get zoom(): number { return this.#controller?.zoom ?? 1; }
+
   /** Current stage of the door intro (`'done'` without an intro). */
   get stage(): QrCityIntroStage { return this.#controller?.stage ?? 'done'; }
 
@@ -111,6 +125,9 @@ export class QrCityElement extends Base {
   openDoor(): void { this.#controller?.openDoor(); }
   continueIntro(): void { this.#controller?.continueIntro(); }
   skipIntro(): void { this.#controller?.skipIntro(); }
+  setZoom(zoom: number, opts?: { immediate?: boolean; at?: { x: number; y: number } }): void { this.#controller?.setZoom(zoom, opts); }
+  zoomBy(factor: number, opts?: { at?: { x: number; y: number } }): void { this.#controller?.zoomBy(factor, opts); }
+  resetZoom(opts?: { immediate?: boolean }): void { this.#controller?.resetZoom(opts); }
   reveal(): void { this.#controller?.reveal(); }
   setView(view: QrCityView, opts?: { immediate?: boolean }): void { this.#controller?.setView(view, opts); }
   toggleView(): void { this.#controller?.toggleView(); }
@@ -123,7 +140,7 @@ export class QrCityElement extends Base {
 
   // ---- Lifecycle -------------------------------------------------------
   connectedCallback(): void {
-    for (const p of ['data', 'cityStyle', 'intro', 'view', 'errorCorrection', 'quality', 'animated', 'interactive', 'background', 'label', 'pauseAtThreshold', 'doorLabel']) {
+    for (const p of ['data', 'cityStyle', 'intro', 'view', 'errorCorrection', 'quality', 'animated', 'interactive', 'background', 'label', 'pauseAtThreshold', 'doorLabel', 'zoomable', 'maxZoom', 'wheelZoom']) {
       this.#upgrade(p);
     }
     for (const name of ATTRIBUTES) this.#readAttribute(name, this.getAttribute(name));
@@ -174,6 +191,9 @@ export class QrCityElement extends Base {
       case 'label': o.label = v; break;
       case 'pause-at-threshold': o.pauseAtThreshold = v === undefined ? undefined : v !== 'false'; break;
       case 'door-label': o.doorLabel = v; break;
+      case 'zoomable': o.zoomable = v === undefined ? undefined : v !== 'false'; break;
+      case 'max-zoom': o.maxZoom = v === undefined ? undefined : Number(v); break;
+      case 'wheel-zoom': o.wheelZoom = v; break;
     }
   }
 
@@ -211,6 +231,7 @@ export class QrCityElement extends Base {
         ...this.#clean(),
         onReveal: () => this.#emit('qr-city-reveal', undefined),
         onIntroStage: (stage) => this.#emit('qr-city-introstage', { stage }),
+        onZoomChange: (zoom) => this.#emit('qr-city-zoomchange', { zoom }),
         onViewChange: (view) => this.#emit('qr-city-viewchange', { view }),
         onError: (error) => this.#emit('qr-city-error', { error }),
       });

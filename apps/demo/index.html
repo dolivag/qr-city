@@ -37,9 +37,14 @@
         <div class="gate" id="gate" hidden>
           <form class="card" id="form" autocomplete="off" novalidate>
             <h2>¿Qué ciudad <em>construimos</em>?</h2>
-            <p>Pega un enlace o un texto. Los tejados de la ciudad formarán su código QR.</p>
+            <p>Pega un enlace o un texto y elige cómo será la ciudad.</p>
             <label for="data">Enlace o texto</label>
             <input id="data" type="text" value="https://github.com/dolivag/qr-city" maxlength="300" spellcheck="false" />
+            <fieldset>
+              <legend>Estilo de ciudad</legend>
+              <div class="opts" id="opts"></div>
+              <p class="style-desc" id="style-desc"></p>
+            </fieldset>
             <p class="err" id="err" role="alert"></p>
             <div class="row">
               <button type="submit" class="primary">Construir ciudad</button>
@@ -53,6 +58,12 @@
         <button type="button" id="toggle" disabled>Revelar QR</button>
         <button type="button" id="again" disabled>Otra ciudad</button>
         <button type="button" id="png" disabled>Descargar PNG</button>
+        <div class="zoom" role="group" aria-label="Zoom">
+          <button type="button" id="zoom-out" disabled aria-label="Alejar">−</button>
+          <button type="button" id="zoom-reset" disabled>Zoom <span id="zoom-value">1×</span></button>
+          <button type="button" id="zoom-in" disabled aria-label="Acercar">+</button>
+        </div>
+        <p class="tip">Zoom: pellizca, o Ctrl + rueda. Arrastra para moverte.</p>
         <p id="msg" role="status"></p>
       </div>
 

@@ -8,6 +8,10 @@ export interface QualityProfile {
   pixelRatioCap: number;
   /** Painted-ground pixels per module (capped further by the max texture size). */
   groundPx: number;
+  /** Facade texture size in pixels per window tile. */
+  facadePx: number;
+  anisotropy: number;
+  snowflakes: number;
   ringCars: number;
   runCars: number;
   people: number;
@@ -19,12 +23,12 @@ export interface QualityProfile {
 }
 
 const HIGH: QualityProfile = {
-  level: 'high', antialias: true, shadows: true, shadowMapSize: 2048, pixelRatioCap: 2, groundPx: 36,
+  level: 'high', antialias: true, shadows: true, shadowMapSize: 2048, pixelRatioCap: 2, groundPx: 56, facadePx: 128, anisotropy: 8, snowflakes: 1400,
   ringCars: 12, runCars: 18, people: 50, propStep: 0.85, flocks: 3, detail: 1,
 };
 
 const LOW: QualityProfile = {
-  level: 'low', antialias: false, shadows: false, shadowMapSize: 512, pixelRatioCap: 1, groundPx: 20,
+  level: 'low', antialias: false, shadows: false, shadowMapSize: 512, pixelRatioCap: 1, groundPx: 24, facadePx: 64, anisotropy: 2, snowflakes: 500,
   ringCars: 6, runCars: 8, people: 16, propStep: 1.9, flocks: 1, detail: 0.5,
 };
 

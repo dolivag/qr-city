@@ -1,7 +1,7 @@
 import { LinearSRGBColorSpace, OrthographicCamera, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { createFlight, FLIGHT_END } from './camera/flight';
 import type { Flight } from './camera/flight';
-import { placeOrtho } from './camera/ortho';
+import { groundPointAt, placeOrtho } from './camera/ortho';
 import { resolveOptions, validateData } from './options';
 import type { ResolvedOptions } from './options';
 import { createMatrix } from './qr/matrix';
@@ -96,6 +96,14 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   let bornAt = -1;
   let revealed = intro === 'door';
 
+  // Zoom and pan of the city view. `zoomTarget` is what was asked for; `zoom` follows it smoothly.
+  let zoom = 1;
+  let zoomTarget = 1;
+  const pan = { x: 0, z: 0 };
+  /** Ground point that must stay under a screen position while the zoom animates. */
+  let anchor: { ndcX: number; ndcY: number; gx: number; gz: number } | null = null;
+  let dragged = false;
+
   const reduced = () => (opts.animate === 'auto' ? !!reduceQuery?.matches : !opts.animate);
   const report = (e: unknown) => {
     const err = e instanceof Error ? e : new Error(String(e));
@@ -130,6 +138,9 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     canvas.style.cursor = active ? 'pointer' : '';
     if (active) canvas.tabIndex = 0; else canvas.removeAttribute('tabindex');
     if (active && stage === 'done') canvas.setAttribute('aria-pressed', String(target === 1)); else canvas.removeAttribute('aria-pressed');
+    // Vertical swipes keep scrolling the page until the city is zoomed in; then touches drag the map.
+    canvas.style.touchAction = canZoom() ? (zoomTarget > 1 ? 'none' : 'pan-y') : '';
+    if (canZoom() && zoomTarget > 1) canvas.style.cursor = 'grab';
   }
 
   function setStage(next: QrCityIntroStage) {
@@ -185,6 +196,8 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     veil?.remove();
     veil = null;
     t = 0;
+    zoom = zoomTarget = 1;
+    pan.x = pan.z = 0;
     setStage('done');
     bornAt = -1;
     revealed = true;
@@ -216,6 +229,65 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   function skipIntro() {
     if (disposed || stage === 'done') return;
     endIntro();
+  }
+
+  const canZoom = () => opts.zoomable && stage === 'done';
+  const clampPan = () => {
+    const lim = (city?.size ?? 40) * 0.5;
+    pan.x = Math.max(-lim, Math.min(lim, pan.x));
+    pan.z = Math.max(-lim, Math.min(lim, pan.z));
+  };
+  const ndcOf = (clientX: number, clientY: number) => {
+    const r = canvas.getBoundingClientRect();
+    return { x: ((clientX - r.left) / Math.max(1, r.width)) * 2 - 1, y: 1 - ((clientY - r.top) / Math.max(1, r.height)) * 2 };
+  };
+  const placeView = () => city && placeOrtho(ortho, t, city.size, width / height, zoom, pan.x, pan.z);
+
+  function setZoom(next: number, o?: { immediate?: boolean; at?: { x: number; y: number } }) {
+    if (disposed) return;
+    const z = Math.max(1, Math.min(opts.maxZoom, Number.isFinite(next) ? next : 1));
+    if (z === zoomTarget && !o?.immediate) return;
+    const changed = z !== zoomTarget;
+    zoomTarget = z;
+    if (stage === 'done' && city && width && height) {
+      placeView();
+      const ndcX = o?.at ? o.at.x * 2 - 1 : 0;
+      const ndcY = o?.at ? 1 - o.at.y * 2 : 0;
+      const g = groundPointAt(ortho, ndcX, ndcY);
+      anchor = z === 1 ? null : { ndcX, ndcY, gx: g.x, gz: g.z };
+      if (o?.immediate || reduced() || !playing) {
+        zoom = z;
+        if (z === 1) { pan.x = 0; pan.z = 0; }
+        applyAnchor();
+        tick(performance.now(), 0, false);
+      }
+    }
+    applyA11y();
+    if (changed) safe(() => opts.onZoomChange?.(z));
+  }
+
+  /** Moves the pan so the anchored ground point returns under its screen position. */
+  function applyAnchor() {
+    if (!anchor || !city) return;
+    placeView();
+    const p = groundPointAt(ortho, anchor.ndcX, anchor.ndcY);
+    pan.x += anchor.gx - p.x;
+    pan.z += anchor.gz - p.z;
+    clampPan();
+    placeView();
+  }
+
+  function stepZoom(dt: number, still: boolean) {
+    if (zoom !== zoomTarget) {
+      const k = still ? 1 : 1 - Math.exp(-dt * 10);
+      const lz = Math.log(zoom) + (Math.log(zoomTarget) - Math.log(zoom)) * k;
+      zoom = Math.abs(Math.log(zoomTarget) - lz) < 0.003 ? zoomTarget : Math.exp(lz);
+    }
+    if (zoomTarget === 1 && (pan.x || pan.z)) {
+      const k = still ? 1 : 1 - Math.exp(-dt * 10);
+      pan.x = Math.abs(pan.x) < 0.01 ? 0 : pan.x * (1 - k);
+      pan.z = Math.abs(pan.z) < 0.01 ? 0 : pan.z * (1 - k);
+    }
   }
 
   function resize() {
@@ -264,8 +336,14 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     if (advance && t !== target) {
       t = still ? target : target > t ? Math.min(1, t + dt * VIEW_SPEED) : Math.max(0, t - dt * VIEW_SPEED);
     }
+    if (advance) stepZoom(dt, still);
     city.update({ now, dt, t, reduce: still });
-    placeOrtho(ortho, t, city.size, aspect);
+    placeView();
+    if (anchor) {
+      applyAnchor();
+      if (zoom === zoomTarget) anchor = null;
+    }
+    city.setFocus(pan.x, pan.z, zoom);
     renderer.render(cityScene, ortho);
     if (advance && !revealed) {
       if (bornAt < 0) bornAt = now;
@@ -316,8 +394,97 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     if (stage === 'door') openDoor();
     else if (stage === 'done') toggleView();
   };
-  const onClick = () => activate();
+  const onClick = () => {
+    if (dragged) { dragged = false; return; }
+    activate();
+  };
+
+  // Pointers on the canvas: one finger/mouse drags the map when zoomed in, two fingers pinch.
+  const pointers = new Map<number, { x: number; y: number }>();
+  let downAt: { x: number; y: number } | null = null;
+  const onPointerDown = (e: PointerEvent) => {
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) { downAt = { x: e.clientX, y: e.clientY }; dragged = false; }
+    if (canZoom() && (zoomTarget > 1 || pointers.size > 1)) canvas.setPointerCapture?.(e.pointerId);
+  };
+  const onPointerMove = (e: PointerEvent) => {
+    const prev = pointers.get(e.pointerId);
+    if (!prev || !canZoom() || !city) return;
+    const cur = { x: e.clientX, y: e.clientY };
+    if (pointers.size === 1) {
+      if (downAt && Math.hypot(cur.x - downAt.x, cur.y - downAt.y) > 6) dragged = true;
+      if (zoomTarget > 1 && dragged) {
+        placeView();
+        const a = ndcOf(prev.x, prev.y);
+        const b = ndcOf(cur.x, cur.y);
+        const g0 = groundPointAt(ortho, a.x, a.y);
+        const g1 = groundPointAt(ortho, b.x, b.y);
+        pan.x += g0.x - g1.x;
+        pan.z += g0.z - g1.z;
+        anchor = null;
+        clampPan();
+        if (!playing) tick(performance.now(), 0, false);
+      }
+    } else if (pointers.size === 2) {
+      dragged = true;
+      const other = [...pointers.entries()].find(([id]) => id !== e.pointerId)?.[1] as { x: number; y: number };
+      const before = Math.hypot(prev.x - other.x, prev.y - other.y);
+      const after = Math.hypot(cur.x - other.x, cur.y - other.y);
+      const from = ndcOf((prev.x + other.x) / 2, (prev.y + other.y) / 2);
+      const to = ndcOf((cur.x + other.x) / 2, (cur.y + other.y) / 2);
+      if (before > 4 && after > 4) {
+        placeView();
+        const g = groundPointAt(ortho, from.x, from.y);
+        const z = Math.max(1, Math.min(opts.maxZoom, zoom * (after / before)));
+        const changed = z !== zoomTarget;
+        zoom = zoomTarget = z;
+        placeView();
+        const p = groundPointAt(ortho, to.x, to.y);
+        pan.x += g.x - p.x;
+        pan.z += g.z - p.z;
+        anchor = null;
+        if (z === 1) { pan.x = 0; pan.z = 0; }
+        clampPan();
+        applyA11y();
+        if (changed) safe(() => opts.onZoomChange?.(z));
+        if (!playing) tick(performance.now(), 0, false);
+      }
+    }
+    pointers.set(e.pointerId, cur);
+  };
+  const onPointerEnd = (e: PointerEvent) => {
+    pointers.delete(e.pointerId);
+    if (canvas.hasPointerCapture?.(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+  };
+  const onWheel = (e: WheelEvent) => {
+    if (!canZoom() || opts.wheelZoom === 'off') return;
+    if (opts.wheelZoom === 'ctrl' && !e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1;
+    const speed = e.ctrlKey ? 0.005 : 0.003; // trackpad pinch arrives as small ctrl+wheel deltas
+    const at = ndcOf(e.clientX, e.clientY);
+    setZoom(zoomTarget * Math.exp(-e.deltaY * unit * speed), { at: { x: (at.x + 1) / 2, y: (1 - at.y) / 2 } });
+  };
   const onKey = (e: KeyboardEvent) => {
+    if (canZoom() && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const k = e.key;
+      if (k === '+' || k === '=') { e.preventDefault(); setZoom(zoomTarget * 1.5); return; }
+      if (k === '-' || k === '_') { e.preventDefault(); setZoom(zoomTarget / 1.5); return; }
+      if (k === '0') { e.preventDefault(); setZoom(1); return; }
+      const dir: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+      if (dir[k] && zoomTarget > 1 && city) {
+        e.preventDefault();
+        placeView();
+        const a = groundPointAt(ortho, 0, 0);
+        const b = groundPointAt(ortho, dir[k][0] * 0.25, dir[k][1] * 0.25);
+        pan.x += b.x - a.x;
+        pan.z += b.z - a.z;
+        anchor = null;
+        clampPan();
+        if (!playing) tick(performance.now(), 0, false);
+        return;
+      }
+    }
     if (e.key !== 'Enter' && e.key !== ' ') return;
     if (!opts.interactive || (stage !== 'door' && stage !== 'done')) return;
     e.preventDefault();
@@ -333,6 +500,11 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     if (reduced() && stage === 'done') t = target;
   };
   canvas.addEventListener('click', onClick);
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerEnd);
+  canvas.addEventListener('pointercancel', onPointerEnd);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('keydown', onKey);
   canvas.addEventListener('webglcontextlost', onLost);
   canvas.addEventListener('webglcontextrestored', onRestored);
@@ -384,6 +556,9 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
         createMatrix(opts.data, opts.errorCorrection);
         if (stage === 'flying') endIntro();
         if (doorScene && styleChanged) buildDoorScene();
+        zoom = zoomTarget = 1;
+        pan.x = pan.z = 0;
+        anchor = null;
         if (stage === 'done') buildCity(true);
         else dropCity(); // built again when the door opens
         applyBackground();
@@ -394,6 +569,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     } else {
       applyBackground();
     }
+    if (!opts.zoomable || zoomTarget > opts.maxZoom) setZoom(opts.zoomable ? opts.maxZoom : 1, { immediate: true });
     applyA11y();
     if (viewRequested) setView(resolved.view);
     resize();
@@ -428,6 +604,11 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     if (!observer) removeEventListener('resize', resize);
     reduceQuery?.removeEventListener?.('change', onMotionChange);
     canvas.removeEventListener('click', onClick);
+    canvas.removeEventListener('pointerdown', onPointerDown);
+    canvas.removeEventListener('pointermove', onPointerMove);
+    canvas.removeEventListener('pointerup', onPointerEnd);
+    canvas.removeEventListener('pointercancel', onPointerEnd);
+    canvas.removeEventListener('wheel', onWheel);
     canvas.removeEventListener('keydown', onKey);
     canvas.removeEventListener('webglcontextlost', onLost);
     canvas.removeEventListener('webglcontextrestored', onRestored);
@@ -449,6 +630,12 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     get stage(): QrCityIntroStage {
       return stage;
     },
+    get zoom(): number {
+      return zoomTarget;
+    },
+    setZoom,
+    zoomBy: (factor: number, o?: { at?: { x: number; y: number } }) => setZoom(zoomTarget * factor, o),
+    resetZoom: (o?: { immediate?: boolean }) => setZoom(1, o),
     openDoor,
     continueIntro,
     skipIntro,

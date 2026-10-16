@@ -5,10 +5,11 @@ export const MAX_DATA_LENGTH = 300;
 const INTROS: readonly QrCityIntro[] = ['door', 'flyover', 'none'];
 const VIEWS: readonly QrCityView[] = ['city', 'qr'];
 const ECCS: readonly QrCityEcc[] = ['L', 'M', 'Q', 'H'];
+const WHEELS: readonly NonNullable<QrCityOptions['wheelZoom']>[] = ['ctrl', 'always', 'off'];
 const QUALITIES: readonly QrCityQuality[] = ['auto', 'high', 'low'];
 
-export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onError' | 'background' | 'maxPixelRatio'>> &
-  Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onError' | 'background' | 'maxPixelRatio'>;
+export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onError' | 'background' | 'maxPixelRatio'>> &
+  Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onError' | 'background' | 'maxPixelRatio'>;
 
 function oneOf<T extends string>(name: string, value: unknown, allowed: readonly T[]): T {
   if (!allowed.includes(value as T)) {
@@ -35,6 +36,8 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
   }
   const maxPixelRatio = input.maxPixelRatio;
   if (maxPixelRatio !== undefined && !(maxPixelRatio > 0)) throw new RangeError('[qr-city] `maxPixelRatio` must be greater than 0.');
+  const maxZoom = input.maxZoom ?? 8;
+  if (!(maxZoom >= 1)) throw new RangeError('[qr-city] `maxZoom` must be at least 1.');
   return {
     data: validateData(input.data),
     style: input.style ?? 'moderna',
@@ -44,6 +47,9 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     errorCorrection: oneOf('errorCorrection', input.errorCorrection ?? 'M', ECCS),
     quality: oneOf('quality', input.quality ?? 'auto', QUALITIES),
     interactive: input.interactive ?? true,
+    zoomable: input.zoomable ?? true,
+    maxZoom: maxZoom,
+    wheelZoom: oneOf('wheelZoom', input.wheelZoom ?? 'ctrl', WHEELS),
     animate: input.animate ?? 'auto',
     maxPixelRatio,
     label: input.label ?? 'QR code city',
@@ -52,6 +58,7 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     onReveal: input.onReveal,
     onIntroStage: input.onIntroStage,
     onViewChange: input.onViewChange,
+    onZoomChange: input.onZoomChange,
     onError: input.onError,
   };
 }

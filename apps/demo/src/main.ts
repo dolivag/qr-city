@@ -1,3 +1,5 @@
+import { styles } from '@qr-city/core';
+import type { QrCityStyle } from '@qr-city/core';
 import { defineQrCity } from '@qr-city/element';
 import type { QrCityElement, QrCityIntroStage } from '@qr-city/element';
 import { paper } from './paper-style';
@@ -7,6 +9,34 @@ const city = $<QrCityElement>('city');
 // Set before registering the element so it builds once, with the right style.
 city.cityStyle = paper;
 defineQrCity();
+
+const choices: QrCityStyle[] = [paper, ...Object.values(styles)];
+let chosen: QrCityStyle = paper;
+
+const opts = $('opts');
+const styleDesc = $('style-desc');
+styleDesc.textContent = chosen.description;
+choices.forEach((s, i) => {
+  const label = document.createElement('label');
+  label.className = 'opt';
+  const input = document.createElement('input');
+  input.type = 'radio';
+  input.name = 'style';
+  input.value = s.id;
+  input.checked = i === 0;
+  input.addEventListener('change', () => { chosen = s; styleDesc.textContent = s.description; });
+  const dots = document.createElement('span');
+  dots.className = 'dots';
+  for (const c of [...s.palette.towers.slice(0, 3), s.palette.roof]) {
+    const d = document.createElement('i');
+    d.style.background = c;
+    dots.append(d);
+  }
+  const name = document.createElement('b');
+  name.textContent = s.name;
+  label.append(input, dots, name);
+  opts.append(label);
+});
 
 const hint = $('hint');
 const skip = $('skip');
@@ -18,6 +48,10 @@ const cancel = $('cancel');
 const toggle = $<HTMLButtonElement>('toggle');
 const again = $<HTMLButtonElement>('again');
 const png = $<HTMLButtonElement>('png');
+const zoomIn = $<HTMLButtonElement>('zoom-in');
+const zoomOut = $<HTMLButtonElement>('zoom-out');
+const zoomReset = $<HTMLButtonElement>('zoom-reset');
+const zoomValue = $('zoom-value');
 const msg = $('msg');
 
 let stage: QrCityIntroStage = 'door';
@@ -30,7 +64,8 @@ function sync() {
   gate.classList.toggle('over', overCity);
   cancel.hidden = !overCity;
   const ready = stage === 'done' && !overCity;
-  for (const b of [toggle, again, png]) b.disabled = !ready;
+  for (const b of [toggle, again, png, zoomIn, zoomOut, zoomReset]) b.disabled = !ready;
+  zoomValue.textContent = `${Number(city.zoom.toFixed(1))}×`;
   toggle.textContent = city.view === 'qr' ? 'Ver ciudad' : 'Revelar QR';
   if (!gate.hidden) setTimeout(() => input.focus({ preventScroll: true }), 350);
 }
@@ -40,6 +75,7 @@ city.addEventListener('qr-city-introstage', (e) => {
   sync();
 });
 city.addEventListener('qr-city-viewchange', sync);
+city.addEventListener('qr-city-zoomchange', sync);
 city.addEventListener('qr-city-error', (e) => {
   msg.textContent = (e as CustomEvent<{ error: Error }>).detail.error.message;
 });
@@ -51,6 +87,7 @@ form.addEventListener('submit', (e) => {
   if (value.length > 300) { err.textContent = 'Es demasiado largo. Usa menos de 300 caracteres.'; return; }
   err.textContent = '';
   msg.textContent = '';
+  city.cityStyle = chosen;
   city.setAttribute('data', value);
   if (stage === 'threshold') {
     city.continueIntro();
@@ -62,6 +99,9 @@ form.addEventListener('submit', (e) => {
 });
 
 skip.addEventListener('click', () => city.skipIntro());
+zoomIn.addEventListener('click', () => city.zoomBy(1.6));
+zoomOut.addEventListener('click', () => city.zoomBy(1 / 1.6));
+zoomReset.addEventListener('click', () => city.resetZoom());
 toggle.addEventListener('click', () => city.toggleView());
 again.addEventListener('click', () => { overCity = true; sync(); });
 cancel.addEventListener('click', () => { overCity = false; err.textContent = ''; sync(); });

@@ -1,5 +1,5 @@
-/** Identifiers of the built-in styles. Phase 1 ships `moderna` only. */
-export type QrCityStyleId = 'moderna';
+/** Identifiers of the built-in styles. */
+export type QrCityStyleId = 'moderna' | 'costera' | 'ciberpunk' | 'nevada';
 
 /** How the city is introduced. `'flyover'` is not implemented yet. */
 export type QrCityIntro = 'door' | 'flyover' | 'none';
@@ -75,6 +75,10 @@ export interface QrCityStyle {
     roof: string;
     towers: string[];
     houses: string[];
+    /** Sea around the city (light). Adds a beach, a lighthouse and boats. */
+    water?: string;
+    /** Fine grid painted on the ground. */
+    grid?: string;
   };
   buildings: {
     /** Probability bias towards low houses (0–1). */
@@ -83,10 +87,14 @@ export interface QrCityStyle {
     skyBias: number;
     heightMul: number;
     windowColor: string;
+    /** Glowing windows, cycling through these colors. */
+    neon?: string[];
   };
-  vegetation: { kind: 'round'; colors: string[] };
+  vegetation: { kind: 'round' | 'palm' | 'pine' | 'neon'; colors: string[] };
+  /** `glow`: unlit, luminous cars. */
   traffic: { carColors: string[]; glow?: boolean };
-  flyers: { kind: 'birds'; color: string };
+  /** `gulls` are bigger birds; `snow` falls over the city. */
+  flyers: { kind: 'birds' | 'gulls' | 'drones' | 'snow'; color: string };
   /** Light border around the QR, in modules (5–6). */
   quietZone: number;
   /** Door scene theme. Falls back to the `moderna` one. */
@@ -114,6 +122,12 @@ export interface QrCityOptions {
   animate?: boolean | 'auto';
   /** Upper bound of the device pixel ratio. Default 2 (1 in `low` quality). */
   maxPixelRatio?: number;
+  /** Pinch, drag to pan, and zoom buttons/keys on the city. Default `true`. */
+  zoomable?: boolean;
+  /** Maximum zoom factor (1 = the whole city in view). Default 8. */
+  maxZoom?: number;
+  /** `'ctrl'`: Ctrl/⌘ + wheel (and trackpad pinch) zoom, plain wheel scrolls the page. Default `'ctrl'`. */
+  wheelZoom?: 'ctrl' | 'always' | 'off';
   /** CSS color, or `'transparent'`. Default: the style's sky color. */
   background?: string;
   /** Accessible name of the canvas. Default `'QR code city'`. */
@@ -125,6 +139,7 @@ export interface QrCityOptions {
   /** The door intro moved to another stage. */
   onIntroStage?: (stage: QrCityIntroStage) => void;
   onViewChange?: (view: QrCityView) => void;
+  onZoomChange?: (zoom: number) => void;
   /** Runtime failures after creation (e.g. WebGL context lost). */
   onError?: (error: Error) => void;
 }
@@ -132,6 +147,8 @@ export interface QrCityOptions {
 export interface QrCityController {
   readonly canvas: HTMLCanvasElement;
   readonly view: QrCityView;
+  /** Current zoom target (1 = the whole city in view). */
+  readonly zoom: number;
   /** Current intro stage (`'done'` when there is no intro or it already finished). */
   readonly stage: QrCityIntroStage;
   /** Starts the door animation (same as clicking the door). */
@@ -143,6 +160,11 @@ export interface QrCityController {
   /** Goes to the top-down view where the QR is readable. Same as `setView('qr')`. */
   reveal(): void;
   setView(view: QrCityView, opts?: { immediate?: boolean }): void;
+  /** Zooms towards the center of the screen, or towards `at` (0–1 canvas coordinates). Clamped to `1…maxZoom`. */
+  setZoom(zoom: number, opts?: { immediate?: boolean; at?: { x: number; y: number } }): void;
+  zoomBy(factor: number, opts?: { at?: { x: number; y: number } }): void;
+  /** Back to the whole city in view. */
+  resetZoom(opts?: { immediate?: boolean }): void;
   toggleView(): void;
   setStyle(style: QrCityStyleId | QrCityStyle): void;
   /** Rebuilds the city only if `data`, `style`, `errorCorrection` or `quality` change. */

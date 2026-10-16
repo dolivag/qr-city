@@ -44,14 +44,19 @@ describe('styles', () => {
     expect(() => resolveStyle('nope' as never)).toThrow(/Unknown style/);
   });
 
-  it('keeps the scannability invariant: dark roof, light ground', () => {
+  it.each(Object.values(styles))('keeps the scannability invariant in "$id": dark roof, light ground', (style) => {
     const lum = (hex: string) => {
       const n = parseInt(hex.slice(1), 16);
       return (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
     };
-    const p = styles.moderna.palette;
+    const p = style.palette;
     expect(lum(p.roof)).toBeLessThan(0.35);
-    for (const c of [p.walk, p.ground, p.road]) expect(lum(c)).toBeGreaterThan(0.8);
-    expect(styles.moderna.quietZone).toBeGreaterThanOrEqual(5);
+    for (const c of [p.walk, p.ground, p.road, ...(p.water ? [p.water] : [])]) expect(lum(c)).toBeGreaterThan(0.8);
+    expect(style.quietZone).toBeGreaterThanOrEqual(5);
+  });
+
+  it('exposes the four built-in styles', () => {
+    expect(Object.keys(styles)).toEqual(['moderna', 'costera', 'ciberpunk', 'nevada']);
+    for (const [id, s] of Object.entries(styles)) expect(s.id).toBe(id);
   });
 });

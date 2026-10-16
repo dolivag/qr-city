@@ -6,7 +6,7 @@ describe('SSR safety', () => {
     expect(typeof window).toBe('undefined');
     const mod = await import('./index');
     expect(typeof mod.createQrCity).toBe('function');
-    expect(Object.keys(mod.styles)).toEqual(['moderna']);
+    expect(Object.keys(mod.styles)).toEqual(['moderna', 'costera', 'ciberpunk', 'nevada']);
   });
 
   it('createQrCity fails with a helpful message when there is no DOM', async () => {
