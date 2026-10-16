@@ -1,6 +1,6 @@
 # @qr-city/vue
 
-Componente de Vue 3 para **qr-city**: una ciudad 3D cuyos tejados forman un QR escaneable. Vue ≥ 3.3, `three` como *peerDependency*.
+Vue 3 component for **qr-city**: a 3D city whose rooftops form a scannable QR code. Vue ≥ 3.3, `three` as a *peerDependency*.
 
 ```bash
 npm i @qr-city/vue three
@@ -15,32 +15,36 @@ const city = ref<InstanceType<typeof QrCity> | null>(null);
 </script>
 
 <template>
-  <QrCity ref="city" data="https://tu-web.dev" city-style="nevada" style="width: 480px" @reveal="console.log('ciudad lista')" />
-  <button @click="city?.reveal()">Revelar QR</button>
+  <QrCity ref="city" data="https://your-site.dev" city-style="nevada" style="width: 480px" @reveal="console.log('city ready')" />
+  <button @click="city?.reveal()">Reveal QR</button>
 </template>
 ```
 
-## Props y eventos
+## Props and events
 
-Las mismas opciones que [`createQrCity`](../core): `data`, `city-style`, `intro`, `pause-at-threshold`, `view`, `error-correction`, `quality`, `interactive`, `animate`, `max-pixel-ratio`, `zoomable`, `max-zoom`, `wheel-zoom`, `fallback`, `background`, `label` y `door-label`. **`city-style`** es el estilo de la ciudad (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` o un objeto `QrCityStyle`), porque `style` es el estilo CSS del contenedor.
+The same options as [`createQrCity`](../core): `data`, `city-style`, `intro`, `pause-at-threshold`, `view`, `error-correction`, `quality`, `interactive`, `animate`, `max-pixel-ratio`, `zoomable`, `max-zoom`, `wheel-zoom`, `fallback`, `background`, `label` and `door-label`. **`city-style`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object), because `style` is the container's CSS style.
 
-| Evento | Carga |
+| Event | Payload |
 | --- | --- |
 | `reveal` | — |
 | `intro-stage` | `'door' \| 'entering' \| 'threshold' \| 'flying' \| 'done'` |
 | `view-change` | `'city' \| 'qr'` |
 | `zoom-change` | `number` |
-| `fallback` | `Error`: no hay WebGL y se muestra un QR plano escaneable |
+| `fallback` | `Error`: no WebGL, a flat scannable QR is shown |
 | `error` | `Error` |
 
-`class` y `style` caen al contenedor, que por defecto es un cuadrado del ancho de su padre.
+`class` and `style` fall through to the container, which by default is a square as wide as its parent.
 
-## Cómo se comporta
+## Behaviour
 
-- **Servidor (SSR, Nuxt…):** renderiza un `<div>` vacío y arranca WebGL en `onMounted`. En Nuxt, usa `<ClientOnly>` si quieres evitar el marcador vacío.
-- **Cambios de props:** se aplican en el sitio; la ciudad solo se reconstruye cuando cambian `data`, `city-style`, `error-correction` o `quality`.
-- **`intro`** se fija al crear: si cambia, el componente se reinicia.
-- **Los booleanos ausentes** no valen `false`: no se pasan al núcleo, que aplica sus valores por defecto.
-- **Sin WebGL** se muestra un QR plano escaneable y se emite `fallback` (`fallback="none"` para recibir un `error` en su lugar). **Otros errores** (datos inválidos…) llegan al evento `error`; el componente nunca lanza al montarse.
-- **QR para imprimir:** `toQrSvg()` / `toQrPng()` en la referencia, o `qrToSvg(data)` / `qrToPng(data)` (se exportan).
-- **Referencia del componente:** `controller`, `reveal()`, `setView()`, `toggleView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, `view`, `zoom`, `stage`.
+- **Server (SSR, Nuxt…):** renders an empty `<div>` and starts WebGL in `onMounted`. In Nuxt, use `<ClientOnly>` to avoid the empty placeholder.
+- **Prop changes:** applied in place; the city only rebuilds when `data`, `city-style`, `error-correction` or `quality` change.
+- **`intro`** is fixed at creation: if it changes, the component restarts.
+- **Absent booleans** are not `false`: they are not passed to the core, which applies its own defaults.
+- **Without WebGL** a flat, scannable QR is shown and `fallback` is emitted (`fallback="none"` to get an `error` instead). **Other errors** (invalid data…) reach the `error` event; the component never throws on mount.
+- **Printable QR:** `toQrSvg()` / `toQrPng()` on the ref, or `qrToSvg(data)` / `qrToPng(data)` (exported).
+- **Component ref:** `controller`, `reveal()`, `setView()`, `toggleView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, `view`, `zoom`, `stage`.
+
+## License
+
+MIT. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.

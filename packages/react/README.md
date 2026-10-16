@@ -1,6 +1,6 @@
 # @qr-city/react
 
-Componente de React para **qr-city**: una ciudad 3D cuyos tejados forman un QR escaneable. React ≥ 18, `three` como *peerDependency*.
+React component for **qr-city**: a 3D city whose rooftops form a scannable QR code. React ≥ 18, `three` as a *peerDependency*.
 
 ```bash
 npm i @qr-city/react three
@@ -11,18 +11,18 @@ import { useRef } from 'react';
 import { QrCity } from '@qr-city/react';
 import type { QrCityHandle } from '@qr-city/react';
 
-export function Ciudad() {
+export function City() {
   const city = useRef<QrCityHandle>(null);
   return (
     <>
       <QrCity
         ref={city}
-        data="https://tu-web.dev"
+        data="https://your-site.dev"
         cityStyle="costera"
         style={{ width: 480 }}
-        onReveal={() => console.log('ciudad lista')}
+        onReveal={() => console.log('city ready')}
       />
-      <button onClick={() => city.current?.reveal()}>Revelar QR</button>
+      <button onClick={() => city.current?.reveal()}>Reveal QR</button>
     </>
   );
 }
@@ -30,28 +30,32 @@ export function Ciudad() {
 
 ## Props
 
-Las mismas opciones que [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label`, `doorLabel`) `fallback`, y las callbacks `onReveal`, `onIntroStage`, `onViewChange`, `onZoomChange`, `onFallback` y `onError`, con dos diferencias:
+The same options as [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label`, `doorLabel`, `fallback`) and the callbacks `onReveal`, `onIntroStage`, `onViewChange`, `onZoomChange`, `onFallback` and `onError`, with two differences:
 
-- **`cityStyle`** es el estilo de la ciudad (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` o un objeto `QrCityStyle`), porque **`style`** es el estilo CSS del contenedor.
-- El resto de props de `<div>` (`className`, `style`, `aria-*`…) van al contenedor. Por defecto es un cuadrado del ancho de su padre.
+- **`cityStyle`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object), because **`style`** is the container's CSS style.
+- The remaining `<div>` props (`className`, `style`, `aria-*`…) go to the container. By default it is a square as wide as its parent.
 
-## Cómo se comporta
+## Behaviour
 
-- **Servidor (SSR, Next.js…):** renderiza un `<div>` vacío y arranca WebGL al montarse. El paquete incluye `"use client"`.
-- **Cambios de props:** se aplican en el sitio; la ciudad solo se reconstruye cuando cambian `data`, `cityStyle`, `errorCorrection` o `quality`. Un objeto de estilo recreado en cada render con el mismo contenido no reconstruye nada.
-- **`intro`** se fija al crear: si cambia, el componente se reinicia.
-- **`view`** se aplica cuando cambia; el usuario puede alternar la vista con un clic sin que cambie la prop.
-- **Callbacks:** se llama siempre a la última, sin recrear la ciudad.
-- **Sin WebGL** se muestra un QR plano escaneable y se llama a `onFallback` (`fallback="none"` para recibir un error en su lugar). **Otros errores** (datos inválidos…) llegan a `onError`; el componente nunca lanza al renderizar.
-- **QR para imprimir:** `ref.current.toQrSvg()` / `toQrPng()`, o `qrToSvg(data)` / `qrToPng(data)` (se exportan, y `qrToSvg` sirve en el servidor).
-- **`ref`:** expone el controlador (`reveal()`, `setView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, `canvas`, `view`, `zoom`, `stage`…). Sus métodos no hacen nada hasta que la ciudad se monta.
+- **Server (SSR, Next.js…):** renders an empty `<div>` and starts WebGL on mount. The package ships `"use client"`.
+- **Prop changes:** applied in place; the city only rebuilds when `data`, `cityStyle`, `errorCorrection` or `quality` change. A style object recreated on every render with the same content rebuilds nothing.
+- **`intro`** is fixed at creation: if it changes, the component restarts.
+- **`view`** is applied when it changes; the user can toggle the view with a click without the prop changing.
+- **Callbacks:** the latest one is always called, without recreating the city.
+- **Without WebGL** a flat, scannable QR is shown and `onFallback` is called (`fallback="none"` to get an error instead). **Other errors** (invalid data…) reach `onError`; the component never throws while rendering.
+- **Printable QR:** `ref.current.toQrSvg()` / `toQrPng()`, or `qrToSvg(data)` / `qrToPng(data)` (exported; `qrToSvg` works on the server).
+- **`ref`:** exposes the controller (`reveal()`, `setView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, `canvas`, `view`, `zoom`, `stage`…). Its methods do nothing until the city has mounted.
 
-### Intro de la puerta con formulario
+### Door intro with a form
 
 ```tsx
 const [stage, setStage] = useState<QrCityIntroStage>('door');
 const city = useRef<QrCityHandle>(null);
 
 <QrCity ref={city} data={url} intro="door" pauseAtThreshold onIntroStage={setStage} />
-{stage === 'threshold' && <Formulario onSubmit={(u) => { setUrl(u); city.current?.continueIntro(); }} />}
+{stage === 'threshold' && <Form onSubmit={(u) => { setUrl(u); city.current?.continueIntro(); }} />}
 ```
+
+## License
+
+MIT. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.

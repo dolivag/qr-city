@@ -2,32 +2,34 @@
 
 [![CI](https://github.com/dolivag/qr-city/actions/workflows/ci.yml/badge.svg)](https://github.com/dolivag/qr-city/actions/workflows/ci.yml)
 
-Una ciudad 3D isométrica cuyos **tejados forman un código QR escaneable**. Cada módulo oscuro del QR es un edificio; los claros son calles y suelo. Al pasar a la vista cenital, el QR se lee.
+**English** · [Español](README.es.md)
 
-> Estado: núcleo (`@qr-city/core`), Web Component (`@qr-city/element`), wrappers de React, Vue y Angular, y demo con la intro de la puerta (`intro: 'door'`). Cuatro estilos de ciudad (*Moderna*, *Costera*, *Ciberpunk*, *Nevada*) y zoom.
+An isometric 3D city whose **rooftops form a scannable QR code**. Every dark QR module is a building; light modules are streets and ground. Switch to the top-down view and the code reads.
 
-## Paquetes
+> Status: core (`@qr-city/core`), Web Component (`@qr-city/element`), React, Vue and Angular wrappers, and a demo with the door intro (`intro: 'door'`). Four city styles (*Moderna*, *Costera*, *Ciberpunk*, *Nevada*) and zoom.
 
-| Paquete | Qué es |
+## Packages
+
+| Package | What it is |
 | --- | --- |
-| [`@qr-city/core`](packages/core) | Núcleo agnóstico de framework: `createQrCity(el, options)`. `three` es *peerDependency*. |
-| [`@qr-city/element`](packages/element) | Web Component `<qr-city>` para cualquier framework. |
-| [`@qr-city/react`](packages/react) | Componente `<QrCity>` para React ≥ 18 (compatible con SSR/Next.js). |
-| [`@qr-city/vue`](packages/vue) | Componente `<QrCity>` para Vue ≥ 3.3. |
-| [`@qr-city/angular`](packages/angular) | Componente standalone `<qr-city-view>` para Angular ≥ 21 (zoneless y SSR). |
-| [`apps/demo`](apps/demo) | App de demo (Vite). |
+| [`@qr-city/core`](packages/core) | Framework-agnostic core: `createQrCity(el, options)`. `three` is a peer dependency. |
+| [`@qr-city/element`](packages/element) | `<qr-city>` Web Component for any framework. |
+| [`@qr-city/react`](packages/react) | `<QrCity>` component for React ≥ 18 (SSR / Next.js friendly). |
+| [`@qr-city/vue`](packages/vue) | `<QrCity>` component for Vue ≥ 3.3. |
+| [`@qr-city/angular`](packages/angular) | Standalone `<qr-city-view>` component for Angular ≥ 21 (zoneless and SSR). |
+| [`apps/demo`](apps/demo) | Demo app (Vite). |
 
-## Elige tu paquete
+## Pick your package
 
-| Framework | Instalación | Uso |
+| Framework | Install | Usage |
 | --- | --- | --- |
-| Cualquiera / HTML | `npm i @qr-city/element three` | `<qr-city data="…">` |
+| Any / plain HTML | `npm i @qr-city/element three` | `<qr-city data="…">` |
 | React | `npm i @qr-city/react three` | `<QrCity data="…" />` |
 | Vue | `npm i @qr-city/vue three` | `<QrCity data="…" />` |
 | Angular | `npm i @qr-city/angular three` | `<qr-city-view data="…" />` |
-| Sin framework | `npm i @qr-city/core three` | `createQrCity(el, { data })` |
+| No framework | `npm i @qr-city/core three` | `createQrCity(el, { data })` |
 
-## Uso rápido
+## Quick start
 
 ```bash
 npm i @qr-city/element three
@@ -35,48 +37,53 @@ npm i @qr-city/element three
 
 ```html
 <script type="module">import '@qr-city/element/define';</script>
-<qr-city data="https://tu-web.dev" style="width: 480px; height: 480px"></qr-city>
+<qr-city data="https://your-site.dev" style="width: 480px; height: 480px"></qr-city>
 ```
 
 ```ts
 import { createQrCity } from '@qr-city/core';
 
-const city = createQrCity(document.querySelector('#host')!, { data: 'https://tu-web.dev' });
-city.reveal();            // vista cenital: el QR se puede escanear
-city.toPNG().then(save);  // exporta un PNG
-city.dispose();           // libera GPU, listeners y bucle
+const city = createQrCity(document.querySelector('#host')!, { data: 'https://your-site.dev' });
+city.reveal();            // top-down view: the QR can be scanned
+city.toPNG().then(save);  // export a PNG
+city.dispose();           // release GPU, listeners and the render loop
 ```
 
-## Desarrollo
+## Development
 
 ```bash
 npm install
-npm run demo        # demo en http://localhost:5173
+npm run demo        # demo at http://localhost:5173
 npm run lint && npm run typecheck && npm test && npm run build
 ```
 
-Monorepo [Nx](https://nx.dev) + npm workspaces + TypeScript. Tests con Vitest. La CI (GitHub Actions) ejecuta `lint`, `typecheck`, `test` y `build` en cada PR y en cada push a `master`; los mismos comandos funcionan en local.
+[Nx](https://nx.dev) monorepo + npm workspaces + TypeScript, tested with Vitest. CI (GitHub Actions) runs `lint`, `typecheck`, `test` and `build` on every PR and every push to `master`; the same commands work locally.
 
-### Test de escaneabilidad
+### Scan-ability test
 
-El objetivo de la librería es que el QR se lea. [`e2e/`](e2e) renderiza la vista cenital en Chromium (WebGL por software), la decodifica con [jsQR](https://github.com/cozmo/jsQR) y comprueba que devuelve el texto original, para cada estilo y varios textos (URL corta, URL larga y UTF-8), tanto a resolución completa como reducida como lo vería una cámara. Un test comprueba además que un estilo con tejados claros **no** se lee, para asegurar que la prueba puede fallar.
+The point of the library is that the QR reads. [`e2e/`](e2e) renders the top-down view in Chromium (software WebGL), decodes it with [jsQR](https://github.com/cozmo/jsQR) and checks it returns the original text, for every style and several payloads (short URL, long URL, UTF-8), both at full resolution and downscaled the way a camera would see it. One test also checks that a style with light rooftops does **not** scan, to make sure the test can fail.
 
 ```bash
-npx playwright install chromium   # una vez
+npx playwright install chromium   # once
 npx nx run e2e:e2e
 ```
 
-Si ya tienes Chromium instalado, apunta a él con `PW_CHROMIUM_PATH=/ruta/a/chromium`. Un fallo sube el informe de Playwright como artefacto de la CI.
+If Chromium is already installed, point to it with `PW_CHROMIUM_PATH=/path/to/chromium`. A failure uploads the Playwright report as a CI artifact.
 
-Es el trabajo más lento (~5 min), así que vive en su propio workflow, [`escaneo.yml`](.github/workflows/escaneo.yml): solo corre en los PR que tocan `packages/core/src`, `e2e/` o el lockfile, nunca al fusionar en `master`, y se puede lanzar a mano desde la pestaña Actions.
+It is the slowest job (~5 min), so it has its own workflow, [`escaneo.yml`](.github/workflows/escaneo.yml): it only runs on PRs that touch `packages/core/src`, `e2e/` or the lockfile, never when merging to `master`, and can be started by hand from the Actions tab.
 
-## Notas de diseño
+## Design notes
 
-- **SSR-safe:** importar los paquetes no toca `window`/`document`; solo `createQrCity` y el Web Component necesitan DOM + WebGL.
-- **Invariante de escaneabilidad:** tejados con `MeshBasicMaterial` oscuro y plano (sin iluminación) sobre suelo claro, con *quiet zone* de 5–6 módulos. En la vista cenital los edificios crecen hasta llenar su módulo (y un poco más), para que no queden rendijas entre tejados vecinos que confundan a los lectores.
-- **Color:** se renderiza en espacio lineal sin conversión sRGB y las luces se escalan ×π, para conservar el aspecto del prototipo original (three r128) con three ≥ r155.
-- **Accesibilidad:** el lienzo es un botón (teclado: Enter/Espacio) con `aria-label`; respeta `prefers-reduced-motion`.
+- **SSR-safe:** importing the packages never touches `window`/`document`; only `createQrCity` and the Web Component need DOM + WebGL.
+- **Scan-ability invariant:** roofs use a dark, flat `MeshBasicMaterial` (unlit) on a light ground, with a 5–6 module quiet zone. In the top-down view buildings grow to fill their module (and slightly beyond) so no gaps between neighbouring roofs confuse readers.
+- **Colour:** rendered in linear space with no sRGB conversion and lights scaled ×π, to keep the look of the original prototype (three r128) on three ≥ r155.
+- **Accessibility:** the canvas is a button (keyboard: Enter/Space) with an `aria-label`; `prefers-reduced-motion` is respected.
+- **No WebGL?** `createQrCity` falls back to a flat, scannable QR in the style's colours instead of throwing.
 
-## Licencia
+## License and credits
 
-MIT
+MIT.
+
+"QR Code" is a registered trademark of DENSO WAVE INCORPORATED. This library generates codes conforming to ISO/IEC 18004 and is not affiliated with or endorsed by DENSO WAVE.
+
+Runtime dependencies: [three](https://threejs.org) (MIT, peer) and [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT). The demo bundles Young Serif, Hanken Grotesk and Fragment Mono (SIL OFL 1.1) through Fontsource.

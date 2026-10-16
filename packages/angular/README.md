@@ -1,53 +1,57 @@
 # @qr-city/angular
 
-Componente de Angular para **qr-city**: una ciudad 3D cuyos tejados forman un QR escaneable. Standalone, compatible con zoneless y con SSR. Angular ≥ 21, `three` como *peerDependency*.
+Angular component for **qr-city**: a 3D city whose rooftops form a scannable QR code. Standalone, zoneless- and SSR-friendly. Angular ≥ 21, `three` as a *peerDependency*.
 
 ```bash
 npm i @qr-city/angular three
 ```
 
 ```ts
-import { Component, viewChild } from '@angular/core';
+import { Component } from '@angular/core';
 import { QrCityComponent } from '@qr-city/angular';
 
 @Component({
-  selector: 'app-ciudad',
+  selector: 'app-city',
   imports: [QrCityComponent],
   template: `
-    <qr-city-view #city data="https://tu-web.dev" cityStyle="ciberpunk" style="width: 480px" (revealed)="listo()" />
-    <button (click)="city.reveal()">Revelar QR</button>
+    <qr-city-view #city data="https://your-site.dev" cityStyle="ciberpunk" style="width: 480px" (revealed)="ready()" />
+    <button (click)="city.reveal()">Reveal QR</button>
   `,
 })
-export class CiudadComponent {
-  listo() { console.log('ciudad lista'); }
+export class CityComponent {
+  ready() { console.log('city ready'); }
 }
 ```
 
-## Entradas y salidas
+## Inputs and outputs
 
-Las mismas opciones que [`createQrCity`](../core), como `input()`: `data` (obligatoria), `cityStyle`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `fallback`, `background`, `label` y `doorLabel`. **`cityStyle`** es el estilo de la ciudad (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` o un objeto `QrCityStyle`).
+The same options as [`createQrCity`](../core), as `input()`s: `data` (required), `cityStyle`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `fallback`, `background`, `label` and `doorLabel`. **`cityStyle`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object).
 
-| Salida | Carga |
+| Output | Payload |
 | --- | --- |
 | `revealed` | — |
 | `introStageChange` | `'door' \| 'entering' \| 'threshold' \| 'flying' \| 'done'` |
 | `viewChange` | `'city' \| 'qr'` |
 | `zoomChange` | `number` |
-| `fallbackUsed` | `Error`: no hay WebGL y se muestra un QR plano escaneable |
+| `fallbackUsed` | `Error`: no WebGL, a flat scannable QR is shown |
 | `qrError` | `Error` |
 
-El selector es `qr-city-view` (para no chocar con el Web Component `<qr-city>`). Por defecto es un cuadrado del ancho de su contenedor.
+The selector is `qr-city-view` (so it does not clash with the `<qr-city>` Web Component). By default it is a square as wide as its container.
 
-## Cómo se comporta
+## Behaviour
 
-- **Servidor (SSR):** WebGL arranca con `afterNextRender`, que no se ejecuta en el servidor.
-- **Zona:** el bucle de animación corre fuera de `NgZone`, así que no dispara detección de cambios en cada fotograma. Las salidas se emiten dentro de la zona.
-- **Cambios de entradas:** se aplican en el sitio; la ciudad solo se reconstruye cuando cambian `data`, `cityStyle`, `errorCorrection` o `quality`.
-- **`intro`** se fija al crear: si cambia, el componente se reinicia.
-- **Sin WebGL** se muestra un QR plano escaneable y se emite `fallbackUsed` (`fallback="none"` para recibir un `qrError` en su lugar). **Otros errores** (datos inválidos…) llegan a `qrError`; en modo desarrollo también se escriben en la consola.
-- **QR para imprimir:** `toQrSvg()` / `toQrPng()` en el componente, o `qrToSvg(data)` / `qrToPng(data)` (se exportan).
-- **Métodos del componente:** `reveal()`, `setView()`, `toggleView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, y `controller`, `stage`, `currentView`, `zoom`.
+- **Server (SSR):** WebGL starts in `afterNextRender`, which does not run on the server.
+- **Zone:** the animation loop runs outside `NgZone`, so it does not trigger change detection every frame. Outputs are emitted inside the zone.
+- **Input changes:** applied in place; the city only rebuilds when `data`, `cityStyle`, `errorCorrection` or `quality` change.
+- **`intro`** is fixed at creation: if it changes, the component restarts.
+- **Without WebGL** a flat, scannable QR is shown and `fallbackUsed` is emitted (`fallback="none"` to get a `qrError` instead). **Other errors** (invalid data…) reach `qrError`; in dev mode they are also written to the console.
+- **Printable QR:** `toQrSvg()` / `toQrPng()` on the component, or `qrToSvg(data)` / `qrToPng(data)` (exported).
+- **Component methods:** `reveal()`, `setView()`, `toggleView()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `toPNG()`, `play()`, `pause()`, plus `controller`, `stage`, `currentView`, `zoom`.
 
-## Publicación
+## Publishing
 
-ng-packagr genera el paquete en `packages/angular/dist`; se publica desde esa carpeta.
+ng-packagr builds the package into `packages/angular/dist`; publish from that folder.
+
+## License
+
+MIT. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
