@@ -1,6 +1,6 @@
 # @qr-city/element
 
-Web Component `<qr-city>`: una ciudad 3D cuyos tejados forman un QR escaneable. Funciona en React, Vue, Angular, Svelte o HTML plano.
+`<qr-city>` Web Component: a 3D city whose rooftops form a scannable QR code. Works in React, Vue, Angular, Svelte or plain HTML.
 
 ```bash
 npm i @qr-city/element three
@@ -8,36 +8,40 @@ npm i @qr-city/element three
 
 ```html
 <script type="module">import '@qr-city/element/define';</script>
-<qr-city data="https://tu-web.dev" style="width: 480px; height: 480px"></qr-city>
+<qr-city data="https://your-site.dev" style="width: 480px; height: 480px"></qr-city>
 ```
 
-Si prefieres registrarlo tú: `import { defineQrCity } from '@qr-city/element'; defineQrCity('mi-ciudad');` (seguro en servidor).
+To register it yourself: `import { defineQrCity } from '@qr-city/element'; defineQrCity('my-city');` (safe on the server).
 
-## Atributos y propiedades
+## Attributes and properties
 
-| Atributo | Propiedad | |
+| Attribute | Property | |
 | --- | --- | --- |
-| `data` | `data` | Texto o URL (1–300). Sin `data` no se renderiza nada. |
-| `style-name` | `cityStyle` | Id de estilo; la propiedad también acepta un objeto `QrCityStyle`. |
-| `intro` | `intro` | `none` \| `door`. Si cambia, el elemento se reinicia. |
-| `pause-at-threshold` | `pauseAtThreshold` | Con `intro="door"`, espera en la pantalla blanca hasta `continueIntro()`. |
-| `door-label` | `doorLabel` | Nombre accesible mientras la puerta espera. |
-| `zoomable` | `zoomable` | `zoomable="false"` desactiva el zoom y el desplazamiento. |
-| `max-zoom` | `maxZoom` | Zoom máximo (8 por defecto). |
-| `wheel-zoom` | `wheelZoom` | `ctrl` (por defecto) \| `always` \| `off`. |
-| `fallback` | `fallback` | `qr` (por defecto): sin WebGL muestra un QR plano escaneable. `none`: emite `qr-city-error`. |
+| `data` | `data` | Text or URL (1–300). Nothing is rendered without `data`. |
+| `style-name` | `cityStyle` | Style id; the property also accepts a `QrCityStyle` object. |
+| `intro` | `intro` | `none` \| `door`. If it changes, the element restarts. |
+| `pause-at-threshold` | `pauseAtThreshold` | With `intro="door"`, waits on the white screen until `continueIntro()`. |
+| `door-label` | `doorLabel` | Accessible name while the door waits. |
+| `zoomable` | `zoomable` | `zoomable="false"` disables zoom and pan. |
+| `max-zoom` | `maxZoom` | Maximum zoom (default 8). |
+| `wheel-zoom` | `wheelZoom` | `ctrl` (default) \| `always` \| `off`. |
+| `fallback` | `fallback` | `qr` (default): without WebGL shows a flat, scannable QR. `none`: fires `qr-city-error`. |
 | `view` | `view` | `city` \| `qr`. |
 | `error-correction` | `errorCorrection` | `L` `M` `Q` `H`. |
 | `quality` | `quality` | `auto` `high` `low`. |
 | `animate` | `animated` | `auto` \| `true` \| `false`. |
-| `interactive` | `interactive` | `interactive="false"` desactiva el clic. |
-| `background` | `background` | Color CSS o `transparent`. |
-| `label` | `label` | Nombre accesible. |
+| `interactive` | `interactive` | `interactive="false"` disables click. |
+| `background` | `background` | CSS colour or `transparent`. |
+| `label` | `label` | Accessible name. |
 
-Métodos: `toQrSvg()`, `toQrPng()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `reveal()`, `setView()`, `toggleView()`, `toPNG()`, `play()`, `pause()`, y `controller` (el controlador de `@qr-city/core`).
+Methods: `toQrSvg()`, `toQrPng()`, `setZoom()`, `zoomBy()`, `resetZoom()`, `openDoor()`, `continueIntro()`, `skipIntro()`, `reveal()`, `setView()`, `toggleView()`, `toPNG()`, `play()`, `pause()`, and `controller` (the `@qr-city/core` controller).
 
-Propiedades de solo lectura `stage` (etapa de la intro), `zoom` y `usingFallback`. Las funciones `qrToSvg` y `qrToPng` también se exportan.
+Read-only properties: `stage` (intro stage), `zoom` and `usingFallback`. The `qrToSvg` and `qrToPng` functions are also exported.
 
-Eventos (burbujean y atraviesan el shadow DOM): `qr-city-reveal`, `qr-city-introstage` (`detail.stage`), `qr-city-zoomchange` (`detail.zoom`), `qr-city-fallback` (`detail.reason`: no hay WebGL y se muestra el QR plano), `qr-city-viewchange` (`detail.view`), `qr-city-error` (`detail.error`).
+Events (they bubble and cross the shadow DOM): `qr-city-reveal`, `qr-city-introstage` (`detail.stage`), `qr-city-zoomchange` (`detail.zoom`), `qr-city-fallback` (`detail.reason`: no WebGL, the flat QR is shown), `qr-city-viewchange` (`detail.view`), `qr-city-error` (`detail.error`).
 
-El elemento mide por defecto un cuadrado del ancho de su contenedor; ponle tamaño con CSS. Se pausa fuera de pantalla (`IntersectionObserver`) y libera todo al desconectarse del DOM.
+By default the element is a square as wide as its container; size it with CSS. It pauses when off-screen (`IntersectionObserver`) and releases everything when disconnected from the DOM.
+
+## License
+
+MIT. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.

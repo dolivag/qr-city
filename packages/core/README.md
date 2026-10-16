@@ -1,6 +1,6 @@
 # @qr-city/core
 
-Núcleo de **qr-city**: una ciudad 3D isométrica cuyos tejados forman un QR escaneable. Sin dependencias de framework; `three` es *peerDependency* (`>=0.160 <1`).
+Core of **qr-city**: an isometric 3D city whose rooftops form a scannable QR code. No framework dependencies; `three` is a *peerDependency* (`>=0.160 <1`).
 
 ```bash
 npm i @qr-city/core three
@@ -10,81 +10,85 @@ npm i @qr-city/core three
 import { createQrCity } from '@qr-city/core';
 
 const city = createQrCity(hostElement, {
-  data: 'https://tu-web.dev',
-  onReveal: () => console.log('ciudad construida'),
+  data: 'https://your-site.dev',
+  onReveal: () => console.log('city built'),
 });
 ```
 
-`hostElement` debe tener tamaño (el lienzo lo rellena y sigue sus cambios con `ResizeObserver`). Llama a `createQrCity` solo en cliente (`useEffect`, `onMounted`, `ngAfterViewInit`…); importar el paquete en servidor es seguro.
+`hostElement` must have a size (the canvas fills it and follows changes via `ResizeObserver`). Call `createQrCity` on the client only (`useEffect`, `onMounted`, `ngAfterViewInit`…); importing the package on the server is safe.
 
-## Opciones (`QrCityOptions`)
+## Options (`QrCityOptions`)
 
-| Opción | Por defecto | |
+| Option | Default | |
 | --- | --- | --- |
-| `data` | — | Texto o URL, 1–300 caracteres. |
-| `style` | `'moderna'` | `'moderna'`, `'costera'`, `'ciberpunk'`, `'nevada'` o un objeto `QrCityStyle`. |
-| `intro` | `'none'` | `'door'`: puerta → entras → sales al vuelo hasta la ciudad. `'flyover'` aún no está implementado (lanza error). Se fija al crear. |
-| `pauseAtThreshold` | `false` | Con `intro: 'door'`: se detiene en la pantalla blanca tras cruzar la puerta hasta que llames a `continueIntro()` (ahí puedes mostrar un formulario). |
-| `view` | `'city'` | Vista inicial: `'city'` (isométrica) o `'qr'` (cenital). |
+| `data` | — | Text or URL, 1–300 characters. |
+| `style` | `'moderna'` | `'moderna'`, `'costera'`, `'ciberpunk'`, `'nevada'` or a `QrCityStyle` object. |
+| `intro` | `'none'` | `'door'`: door → you step in → fly out over the city. `'flyover'` is not implemented yet (throws). Fixed at creation. |
+| `pauseAtThreshold` | `false` | With `intro: 'door'`: stops on the white screen after crossing the door until you call `continueIntro()` (a good place for a form). |
+| `view` | `'city'` | Initial view: `'city'` (isometric) or `'qr'` (top-down). |
 | `errorCorrection` | `'M'` | `'L' \| 'M' \| 'Q' \| 'H'`. |
-| `quality` | `'auto'` | `'low'` desactiva sombras, baja el pixel ratio y reduce coches/peatones/árboles. `auto` elige `low` en táctiles pequeños. El antialiasing se fija al crear. |
-| `interactive` | `true` | Clic / Enter / Espacio alterna la vista. |
-| `zoomable` / `maxZoom` / `wheelZoom` | `true` / `8` / `'ctrl'` | Zoom y desplazamiento de la ciudad: pellizco, arrastrar, `+` `−` `0` y flechas con el lienzo enfocado. `wheelZoom`: `'ctrl'` (Ctrl/⌘ + rueda y pellizco del trackpad; la rueda sola sigue haciendo scroll), `'always'` u `'off'`. |
-| `animate` | `'auto'` | `'auto'` respeta `prefers-reduced-motion`. |
-| `maxPixelRatio` | 2 (1 en `low`) | |
-| `background` | cielo del estilo | Color CSS o `'transparent'`. |
-| `fallback` | `'qr'` | Qué hacer si no hay WebGL: `'qr'` muestra un QR plano escaneable con los colores del estilo; `'none'` lanza un error. |
-| `label` / `doorLabel` | `'QR code city'` / `'Open the door'` | Nombre accesible del lienzo (y mientras la puerta espera). |
-| `onReveal` / `onIntroStage` / `onViewChange` / `onZoomChange` / `onFallback` / `onError` | — | `onReveal` se dispara cuando la ciudad está en pantalla: al terminar de construirse o, con `intro: 'door'`, al acabar el vuelo (y tras cada reconstrucción). `onIntroStage` recibe cada etapa. |
+| `quality` | `'auto'` | `'low'` disables shadows, lowers the pixel ratio and reduces cars/pedestrians/trees. `auto` picks `low` on small touch devices. Antialiasing is fixed at creation. |
+| `interactive` | `true` | Click / Enter / Space toggles the view. |
+| `zoomable` / `maxZoom` / `wheelZoom` | `true` / `8` / `'ctrl'` | Zoom and pan: pinch, drag, `+` `−` `0` and arrow keys while the canvas is focused. `wheelZoom`: `'ctrl'` (Ctrl/⌘ + wheel and trackpad pinch; the plain wheel still scrolls the page), `'always'` or `'off'`. |
+| `animate` | `'auto'` | `'auto'` respects `prefers-reduced-motion`. |
+| `maxPixelRatio` | 2 (1 on `low`) | |
+| `background` | the style's sky | CSS colour or `'transparent'`. |
+| `fallback` | `'qr'` | What to do without WebGL: `'qr'` shows a flat, scannable QR in the style's colours; `'none'` throws. |
+| `label` / `doorLabel` | `'QR code city'` / `'Open the door'` | Accessible name of the canvas (and while the door waits). |
+| `onReveal` / `onIntroStage` / `onViewChange` / `onZoomChange` / `onFallback` / `onError` | — | `onReveal` fires when the city is on screen: when it finishes building or, with `intro: 'door'`, when the flight ends (and after every rebuild). `onIntroStage` receives each stage. |
 
-## Controlador (`QrCityController`)
+## Controller (`QrCityController`)
 
 `fallback` · `toQrSvg(opts?)` · `toQrPng(opts?)` · `zoom` · `setZoom(z, { immediate?, at? })` · `zoomBy(f)` · `resetZoom()` · `stage` · `openDoor()` · `continueIntro()` · `skipIntro()` · `reveal()` · `setView(view, { immediate? })` · `toggleView()` · `setStyle(style)` · `update(partial)` · `toPNG({ scale? })` · `play()` / `pause()` · `resize()` · `dispose()` · `canvas` · `view`.
 
-`update` solo reconstruye la ciudad si cambian `data`, `style`, `errorCorrection` o `quality`. El zoom no pierde nitidez: la textura del suelo se pinta a alta resolución y la sombra del sol se ajusta a lo que se ve. `update` con otros `data`/`style` restablece el zoom.
+`update` only rebuilds the city when `data`, `style`, `errorCorrection` or `quality` change. Zooming stays sharp: the ground texture is painted at high resolution and the sun's shadow follows what is visible. `update` with a different `data`/`style` resets the zoom.
 
-`dispose()` es idempotente y libera geometrías, texturas, materiales, listeners, el bucle y el contexto WebGL.
+`dispose()` is idempotent and frees geometries, textures, materials, listeners, the loop and the WebGL context.
 
-## QR plano para imprimir y respaldo sin WebGL
+## Flat QR for printing, and the no-WebGL fallback
 
-La ciudad es el atractivo, pero a veces lo que se necesita es el código. Para eso:
+The city is the attraction, but sometimes what you need is the code itself:
 
 ```ts
 import { qrToSvg, qrToPng } from '@qr-city/core';
 
-const svg = qrToSvg('https://tu-web.dev');                 // string SVG: negro sobre blanco, con quiet zone de 4 módulos
-const png = await qrToPng('https://tu-web.dev', { size: 1024 }); // Blob PNG (solo navegador)
+const svg = qrToSvg('https://your-site.dev');                      // SVG string: black on white, 4-module quiet zone
+const png = await qrToPng('https://your-site.dev', { size: 1024 }); // PNG Blob (browser only)
 
-city.toQrSvg({ dark: '#111', margin: 4 });                 // el código actual de la ciudad
+city.toQrSvg({ dark: '#111', margin: 4 });                          // the city's current code
 ```
 
-`qrToSvg` no necesita DOM ni WebGL: sirve en el servidor. Opciones: `errorCorrection`, `margin` (módulos), `dark`, `light` (colores CSS simples) y `title`.
+`qrToSvg` needs neither DOM nor WebGL, so it works on the server. Options: `errorCorrection`, `margin` (modules, default 4), `dark`, `light` (simple CSS colours) and `title`.
 
-**Sin WebGL** (navegador antiguo, GPU bloqueada, contexto perdido) `createQrCity` ya no lanza: muestra ese mismo QR plano, con el color de tejado y de suelo del estilo, y devuelve un controlador con `fallback: true` y `canvas: null` en el que los métodos solo 3D son inofensivos y `update`, `toQrSvg`, `toQrPng` y `toPNG` siguen funcionando. Se avisa con `onFallback` (o un `console.warn` si no la defines) y se completa la intro (`onIntroStage('done')`, `onReveal`) para que tu interfaz no se quede esperando. Si el contexto WebGL se pierde y no vuelve en 3 s, el QR plano se superpone al lienzo. Con `fallback: 'none'` se lanza el error de siempre.
+**Without WebGL** (old browser, blocked GPU, lost context) `createQrCity` no longer throws: it shows that same flat QR, using the style's roof and ground colours, and returns a controller with `fallback: true` and `canvas: null` where the 3D-only methods are harmless and `update`, `toQrSvg`, `toQrPng` and `toPNG` keep working. `onFallback` is called (or a `console.warn` if you do not define it) and the intro completes (`onIntroStage('done')`, `onReveal`) so your UI is not left waiting. If the WebGL context is lost and does not come back within 3 s, the flat QR is overlaid on the canvas. With `fallback: 'none'` the usual error is thrown.
 
-## Intro de la puerta
+## Door intro
 
 ```ts
 const city = createQrCity(host, {
-  data: 'https://tu-web.dev',
+  data: 'https://your-site.dev',
   intro: 'door',
   pauseAtThreshold: true,
   onIntroStage: (stage) => { if (stage === 'threshold') showForm(); },
 });
-// Etapas: 'door' → 'entering' → 'threshold' → 'flying' → 'done'
-// Un clic (o Enter/Espacio) en la puerta llama a city.openDoor().
-// En 'threshold' puedes cambiar los datos y continuar:
-city.update({ data: 'https://otra.web' });
+// Stages: 'door' → 'entering' → 'threshold' → 'flying' → 'done'
+// A click (or Enter/Space) on the door calls city.openDoor().
+// At 'threshold' you can change the data and carry on:
+city.update({ data: 'https://another.site' });
 city.continueIntro();
-city.skipIntro(); // salta a la ciudad desde cualquier etapa
+city.skipIntro(); // jump to the city from any stage
 ```
 
-La puerta, el vestíbulo y el vuelo se colorean con `style.door` (ver `QrCityDoorTheme`); si un estilo propio no lo define, usa el de *moderna*. Con `prefers-reduced-motion` la intro se salta las animaciones.
+The door, the lobby and the flight are coloured with `style.door` (see `QrCityDoorTheme`); a custom style that does not define it uses *moderna*'s. With `prefers-reduced-motion` the intro skips the animations.
 
-## Estilos
+## Styles
 
-Incluye cuatro estilos (`styles.moderna`, `styles.costera`, `styles.ciberpunk`, `styles.nevada`), cada uno con su vegetación, tráfico y fauna: palmeras, barcos y gaviotas en *costera*; neón, rejilla y drones en *ciberpunk*; pinos y nieve en *nevada*.
+Four styles are included (`styles.moderna`, `styles.costera`, `styles.ciberpunk`, `styles.nevada`), each with its own vegetation, traffic and wildlife: palms, boats and gulls in *costera*; neon, grid and drones in *ciberpunk*; pines and snow in *nevada*.
 
-## Estilos propios
+## Custom styles
 
-`style` acepta un objeto `QrCityStyle` (colores en `#rrggbb`). Mantén el invariante de escaneabilidad: `palette.roof` oscuro y los tonos de suelo claros. Ver `styles.moderna` como plantilla.
+`style` accepts a `QrCityStyle` object (colours as `#rrggbb`). Keep the scan-ability invariant: a dark `palette.roof` and light ground tones. See `styles.moderna` as a template.
+
+## License
+
+MIT. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED; this library is not affiliated with DENSO WAVE.
