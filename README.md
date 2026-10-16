@@ -59,6 +59,10 @@ npm run lint && npm run typecheck && npm test && npm run build
 
 [Nx](https://nx.dev) monorepo + npm workspaces + TypeScript, tested with Vitest. CI (GitHub Actions) runs `lint`, `typecheck`, `test` and `build` on every PR and every push to `master`; the same commands work locally.
 
+### Releasing
+
+Versions are managed with [Changesets](https://github.com/changesets/changesets). A PR that changes a package adds a note with `npm run changeset`; merging it makes the Release workflow open a "Versionar paquetes" PR, and merging that one publishes to npm (with provenance) whatever is not published yet. `npm run size` checks the gzipped bundle sizes against `.size-limit.json` (CI runs it too). All `@qr-city/*` packages share one version.
+
 ### Scan-ability test
 
 The point of the library is that the QR reads. [`e2e/`](e2e) renders the top-down view in Chromium (software WebGL), decodes it with [jsQR](https://github.com/cozmo/jsQR) and checks it returns the original text, for every style and several payloads (short URL, long URL, UTF-8), both at full resolution and downscaled the way a camera would see it. One test also checks that a style with light rooftops does **not** scan, to make sure the test can fail.

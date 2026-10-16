@@ -1,0 +1,47 @@
+name: Release
+
+# Abre (o actualiza) el PR «Version Packages» cuando hay changesets pendientes; al fusionarlo
+# publica en npm lo que aún no esté publicado. Solo corre si cambian changesets o versiones.
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.changeset/**'
+      - 'packages/*/package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # procedencia (provenance) de npm
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Versionar y publicar
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - uses: changesets/action@v1
+        with:
+          version: npm run version
+          publish: npm run release
+          title: 'Versionar paquetes'
+          commit: 'chore: versionar paquetes'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'
