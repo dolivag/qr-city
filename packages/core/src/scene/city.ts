@@ -78,6 +78,18 @@ export interface City {
   dispose(): void;
 }
 
+/** The four panes of a detailed window (x, y, w, h in a 64 px tile), split by a mullion and a transom. */
+const GLASS: readonly (readonly [number, number, number, number])[] = [
+  [15, 18, 16, 12], [33, 18, 16, 12], [15, 32, 16, 15], [33, 32, 16, 15],
+];
+
+/** Mixes two `#rrggbb` colours (t = 0 → a, 1 → b) into a CSS colour. */
+function mixHex(a: string, b: string, t: number): string {
+  const n = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [r, g, bl] = n(a).map((v, i) => Math.round(v + (n(b)[i] - v) * t));
+  return `rgb(${r},${g},${bl})`;
+}
+
 export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityProfile, options: CityOptions = {}): City {
   const tracker = new ResourceTracker();
   const S = style;
@@ -244,13 +256,36 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       if (f.roundRect) f.roundRect(x, y, w, h, r); else f.rect(x, y, w, h);
       f.fill();
     };
+    // Low quality keeps the one chunky pane; high and ultra get a framed window with two panes,
+    // a transom, a sky-reflection gradient and a sill shadow, which reads less like a toy.
+    const detailed = profile.level !== 'low';
+    const W = S.buildings.windowColor;
     const a = mk();
     a.fillStyle = '#ffffff';
     a.fillRect(0, 0, 64, 64);
-    a.fillStyle = S.buildings.windowColor;
-    round(a, 12, 18, 40, 28, 8);
-    a.fillStyle = 'rgba(255,255,255,0.55)';
-    round(a, 15, 21, 16, 6, 3);
+    if (detailed) {
+      a.fillStyle = 'rgba(0,0,0,0.07)';
+      a.fillRect(13, 48, 38, 3);
+      a.fillStyle = 'rgba(0,0,0,0.30)';
+      round(a, 13, 16, 38, 33, 2);
+      const g = a.createLinearGradient(0, 18, 0, 47);
+      g.addColorStop(0, mixHex(W, '#ffffff', 0.4));
+      g.addColorStop(1, mixHex(W, '#000000', 0.12));
+      a.fillStyle = g;
+      for (const [x, y, w, h] of GLASS) a.fillRect(x, y, w, h);
+      a.fillStyle = 'rgba(255,255,255,0.35)';
+      a.beginPath();
+      a.moveTo(16, 19);
+      a.lineTo(26, 19);
+      a.lineTo(17, 30);
+      a.lineTo(16, 30);
+      a.fill();
+    } else {
+      a.fillStyle = W;
+      round(a, 12, 18, 40, 28, 8);
+      a.fillStyle = 'rgba(255,255,255,0.55)';
+      round(a, 15, 21, 16, 6, 3);
+    }
     const map = tracker.track(new CanvasTexture(a.canvas));
     let mask: CanvasTexture | null = null;
     if (neon) {
@@ -258,9 +293,12 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       b.fillStyle = '#000';
       b.fillRect(0, 0, 64, 64);
       b.fillStyle = '#fff';
-      round(b, 12, 18, 40, 28, 8);
-      b.fillStyle = '#000';
-      b.fillRect(30, 18, 4, 28);
+      if (detailed) for (const [x, y, w, h] of GLASS) b.fillRect(x, y, w, h);
+      else {
+        round(b, 12, 18, 40, 28, 8);
+        b.fillStyle = '#000';
+        b.fillRect(30, 18, 4, 28);
+      }
       mask = tracker.track(new CanvasTexture(b.canvas));
     }
     for (const t of [map, mask]) {
@@ -277,6 +315,8 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   );
   const houseMats = P.houses.map((c) => lambert(c));
 
+  /** Height of the tallest tower, so things that fly can clear the skyline. */
+  let skyline = 0;
   const towerCache = new Map<number, BufferGeometry>();
   const towerGeo = (floors: number) => {
     const hit = towerCache.get(floors);
@@ -349,6 +389,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
           ? (inFinder(r, c) ? 7 + rand(r, c * 2) * 2 : 5.5 + Math.pow(rr, 1.5) * 9 * (1 - dist * 0.5))
           : 1.3 + rand(c * 2, r) * 2.6;
         h = Math.max(isDoor ? 2.6 : 0.9, h * S.buildings.heightMul);
+        skyline = Math.max(skyline, h);
         const floors = Math.max(2, Math.round(h / 0.42));
         const body = new Mesh(towerGeo(floors), [roofMat, pick(towerMats, rand(c, r))]);
         body.scale.y = h;
@@ -448,7 +489,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   }
 
   // ---- Traffic, vegetation, coast and flyers
-  const ctx: SceneCtx = { style: S, profile, tracker, lambert, basic, geo, decor, root, half, size, R };
+  const ctx: SceneCtx = { style: S, profile, tracker, lambert, basic, geo, decor, root, half, size, R, skyline };
   const modules = [createTraffic(ctx, runs), createVegetation(ctx), createCoast(ctx), createFlyers(ctx)];
   const flyers = modules[3] as ReturnType<typeof createFlyers>;
 

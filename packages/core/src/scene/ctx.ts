@@ -24,6 +24,8 @@ export interface SceneCtx {
   decor: Group;
   /** Scene root (lights + city). */
   root: Group;
+  /** Height of the tallest tower. */
+  skyline: number;
   half: number;
   size: number;
   /** Ring radii around the QR, in modules. */
