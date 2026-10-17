@@ -87,4 +87,4 @@ Es el trabajo más lento (~5 min), así que vive en su propio workflow, [`escane
 
 MIT. «QR Code» es una marca registrada de DENSO WAVE INCORPORATED. Esta librería genera códigos conformes a ISO/IEC 18004 y no está afiliada a DENSO WAVE.
 
-Dependencias: [three](https://threejs.org) (MIT), [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT). La demo incluye las fuentes Young Serif, Hanken Grotesk y Fragment Mono (SIL OFL 1.1) mediante Fontsource.
+Dependencias: [three](https://threejs.org) (MIT), [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT). La demo incluye las fuentes Young Serif, Hanken Grotesk y IBM Plex Mono (SIL OFL 1.1) mediante Fontsource.

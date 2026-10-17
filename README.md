@@ -90,4 +90,4 @@ MIT.
 
 "QR Code" is a registered trademark of DENSO WAVE INCORPORATED. This library generates codes conforming to ISO/IEC 18004 and is not affiliated with or endorsed by DENSO WAVE.
 
-Runtime dependencies: [three](https://threejs.org) (MIT, peer) and [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT). The demo bundles Young Serif, Hanken Grotesk and Fragment Mono (SIL OFL 1.1) through Fontsource.
+Runtime dependencies: [three](https://threejs.org) (MIT, peer) and [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) (MIT). The demo bundles Young Serif, Hanken Grotesk and IBM Plex Mono (SIL OFL 1.1) through Fontsource.
