@@ -75,6 +75,8 @@ export interface City {
   update(frame: CityFrame): void;
   /** Points the sun's shadow at what is on screen, so shadows stay sharp when zoomed in. */
   setFocus(x: number, z: number, zoom: number): void;
+  /** Height of the canvas in CSS pixels (sizes things measured in screen pixels, like snowflakes). */
+  setViewport(cssHeight: number): void;
   dispose(): void;
 }
 
@@ -551,5 +553,5 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     root.clear();
   }
 
-  return { root, riseDuration, size, door: doorInfo, update, setFocus, dispose };
+  return { root, riseDuration, size, door: doorInfo, update, setFocus, setViewport: (h) => flyers.setViewport(h), dispose };
 }

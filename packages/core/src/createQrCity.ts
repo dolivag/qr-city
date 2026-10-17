@@ -338,6 +338,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     }
 
     if (!city) return;
+    city.setViewport(height);
 
     if (stage === 'flying' && flight) {
       if (flightStart < 0) flightStart = now;
