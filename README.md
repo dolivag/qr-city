@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/dolivag/qr-city/master/assets/logo/logo-mark.svg" alt="qr-city" width="160"></p>
+
 # qr-city
 
 [![CI](https://github.com/dolivag/qr-city/actions/workflows/ci.yml/badge.svg)](https://github.com/dolivag/qr-city/actions/workflows/ci.yml)
