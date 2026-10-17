@@ -1,5 +1,11 @@
 # @qr-city/core
 
+## 0.4.0
+
+### Minor Changes
+
+- [#24](https://github.com/dolivag/qr-city/pull/24) [`8fe8f6f`](https://github.com/dolivag/qr-city/commit/8fe8f6f30fb15fb5482d790a6fe186d2b20663a0) Thanks [@dolivag](https://github.com/dolivag)! - Nueva opción `plaza`: una plaza en el centro de la ciudad con tu imagen (logo), que solo se ve desde arriba, en la vista del QR. El código se sigue leyendo: fuerza la corrección de errores `'H'` y reduce la imagen a tonos claros y oscuros. Disponible en el Web Component (`plaza`, `plaza-image`, `plaza-size`) y en React, Vue y Angular.
+
 ## 0.3.1
 
 ### Patch Changes
