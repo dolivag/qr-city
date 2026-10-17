@@ -1,5 +1,12 @@
 # @qr-city/element
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [[`8fe8f6f`](https://github.com/dolivag/qr-city/commit/8fe8f6f30fb15fb5482d790a6fe186d2b20663a0)]:
+  - @qr-city/core@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes
