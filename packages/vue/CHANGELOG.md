@@ -1,5 +1,12 @@
 # @qr-city/vue
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [[`7f1fd38`](https://github.com/dolivag/qr-city/commit/7f1fd38dced3161c4a17e04b259c2a61b4d93e0e), [`af6c91c`](https://github.com/dolivag/qr-city/commit/af6c91c1e933e9e3802d621c1ae45ebb2624bb31)]:
+  - @qr-city/core@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes
