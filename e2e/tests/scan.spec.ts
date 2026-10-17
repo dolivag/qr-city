@@ -43,6 +43,27 @@ test('ultra quality keeps the code readable', async ({ page }) => {
   expect(decode(downscale(img, 3))).toBe(PAYLOADS.url);
 });
 
+test('revealing the QR while zoomed in brings back the whole code, centred', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => window.qrcity.mount({ data: 'https://danioliva.dev', style: 'moderna' }));
+  // Zoom deep into a corner of the city, then reveal the QR.
+  await page.evaluate(() => window.qrcity.controller?.setZoom(6, { immediate: true, at: { x: 0.2, y: 0.8 } }));
+  const img = readPng(await page.evaluate(() => window.qrcity.topDownPng()));
+  expect(await page.evaluate(() => window.qrcity.controller?.zoom)).toBe(1);
+  expect(decode(downscale(img, 3))).toBe('https://danioliva.dev');
+});
+
+test('flyover: the camera sweeps over the city, can be skipped, and ends on a scannable city', async ({ page }) => {
+  await page.goto('/');
+  const mounted = page.evaluate(() => window.qrcity.mount({ data: 'https://danioliva.dev', style: 'costera', intro: 'flyover', animate: true }));
+  await expect.poll(() => page.evaluate(() => window.qrcity.controller?.stage)).toBe('flying');
+  await page.evaluate(() => window.qrcity.controller?.skipIntro());
+  await mounted;
+  expect(await page.evaluate(() => window.qrcity.controller?.stage)).toBe('done');
+  const img = readPng(await page.evaluate(() => window.qrcity.topDownPng()));
+  expect(decode(downscale(img, 3))).toBe('https://danioliva.dev');
+});
+
 test('every error-correction level reads', async ({ page }) => {
   for (const errorCorrection of ['L', 'M', 'Q', 'H'] as const) {
     const img = await topDown(page, { data: PAYLOADS.url, style: 'moderna', errorCorrection });

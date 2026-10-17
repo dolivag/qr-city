@@ -23,7 +23,7 @@ const city = createQrCity(hostElement, {
 | --- | --- | --- |
 | `data` | — | Text or URL, 1–300 characters. |
 | `style` | `'moderna'` | `'moderna'`, `'costera'`, `'ciberpunk'`, `'nevada'` or a `QrCityStyle` object. |
-| `intro` | `'none'` | `'door'`: door → you step in → fly out over the city. `'flyover'` is not implemented yet (throws). Fixed at creation. |
+| `intro` | `'none'` | `'door'`: door → you step in → fly out over the city. `'flyover'`: the camera sweeps over the finished city and settles into the isometric view (stages `flying` → `done`; a click or `skipIntro()` skips it). Both are skipped with `prefers-reduced-motion`. Fixed at creation. |
 | `pauseAtThreshold` | `false` | With `intro: 'door'`: stops on the white screen after crossing the door until you call `continueIntro()` (a good place for a form). |
 | `view` | `'city'` | Initial view: `'city'` (isometric) or `'qr'` (top-down). |
 | `errorCorrection` | `'M'` | `'L' \| 'M' \| 'Q' \| 'H'`. |

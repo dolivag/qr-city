@@ -52,6 +52,28 @@ export function createFlight(d: Vector3, door: Vector3, citySize: number): Fligh
     { time: FLIGHT_END, final: true, target: new Vector3(0, 3, 0), polar: ISO.polar, azim: isoAz, dist: 0, fov: 2 },
   ];
 
+  return buildFlight(keys, citySize, (el) => -1.9 * (1 - ease(clamp01((el - DOOR_CLOSE_START) / DOOR_CLOSE_DURATION))));
+}
+
+/** Seconds of the flyover intro. */
+export const FLYOVER_END = 7.5;
+
+/**
+ * Flyover: the camera starts outside the city, low and to the side, and sweeps around it while
+ * rising and dolly-zooming (the FOV narrows to 2° as it pulls back) into the isometric view,
+ * so the swap to the orthographic camera is seamless.
+ */
+export function createFlyover(citySize: number): Flight {
+  const start = { target: new Vector3(0, 2.2, 0), polar: 1.3, azim: ISO.azim + 2.1, dist: citySize * 1.15, fov: 55 };
+  const keys: Key[] = [
+    { time: 0, ...start },
+    { time: FLYOVER_END, final: true, target: new Vector3(0, 3, 0), polar: ISO.polar, azim: ISO.azim, dist: 0, fov: 2 },
+  ];
+  return buildFlight(keys, citySize, () => 0);
+}
+
+/** Interpolates the keyframes into a camera. `door` gives the door angle at each moment. */
+function buildFlight(keys: Key[], citySize: number, door: (el: number) => number): Flight {
   return {
     keys,
     place(el, camera, aspect) {
@@ -77,7 +99,7 @@ export function createFlight(d: Vector3, door: Vector3, citySize: number): Fligh
       );
       camera.lookAt(tg);
       camera.updateProjectionMatrix();
-      return -1.9 * (1 - ease(clamp01((el - DOOR_CLOSE_START) / DOOR_CLOSE_DURATION)));
+      return door(el);
     },
   };
 }

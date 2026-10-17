@@ -19,7 +19,7 @@ To register it yourself: `import { defineQrCity } from '@qr-city/element'; defin
 | --- | --- | --- |
 | `data` | `data` | Text or URL (1–300). Nothing is rendered without `data`. |
 | `style-name` | `cityStyle` | Style id; the property also accepts a `QrCityStyle` object. |
-| `intro` | `intro` | `none` \| `door`. If it changes, the element restarts. |
+| `intro` | `intro` | `none` \| `door` \| `flyover`. If it changes, the element restarts. |
 | `pause-at-threshold` | `pauseAtThreshold` | With `intro="door"`, waits on the white screen until `continueIntro()`. |
 | `door-label` | `doorLabel` | Accessible name while the door waits. |
 | `zoomable` | `zoomable` | `zoomable="false"` disables zoom and pan. |

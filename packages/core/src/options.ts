@@ -32,9 +32,6 @@ export function validateData(data: unknown): string {
 /** Applies defaults and validates. Throws on invalid input; never touches the DOM. */
 export function resolveOptions(input: QrCityOptions): ResolvedOptions {
   const intro = oneOf('intro', input.intro ?? 'none', INTROS);
-  if (intro === 'flyover') {
-    throw new RangeError('[qr-city] intro "flyover" is not implemented yet. Use "door" or "none".');
-  }
   const maxPixelRatio = input.maxPixelRatio;
   if (maxPixelRatio !== undefined && !(maxPixelRatio > 0)) throw new RangeError('[qr-city] `maxPixelRatio` must be greater than 0.');
   const maxZoom = input.maxZoom ?? 8;
