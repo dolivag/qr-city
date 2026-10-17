@@ -8,7 +8,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint ."
   },
-  "dependencies": { "@qr-city/core": "0.2.0" },
+  "dependencies": { "@qr-city/core": "0.3.0" },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@types/pngjs": "^6.0.5",

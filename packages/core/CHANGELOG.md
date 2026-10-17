@@ -1,5 +1,11 @@
 # @qr-city/core
 
+## 0.3.0
+
+### Minor Changes
+
+- [#16](https://github.com/dolivag/qr-city/pull/16) [`bc78b76`](https://github.com/dolivag/qr-city/commit/bc78b767b744a026b21f5a9ba32f678544eaa5bc) Thanks [@dolivag](https://github.com/dolivag)! - New `checkStyle(style)`: reports the contrast between rooftops and ground and the quiet zone of a style, so a custom style that would not scan can be caught. `createQrCity` logs its warnings once for custom style objects.
+
 ## 0.2.0
 
 ### Minor Changes

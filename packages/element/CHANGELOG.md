@@ -1,5 +1,13 @@
 # @qr-city/element
 
+## 0.3.0
+
+### Patch Changes
+
+- [#16](https://github.com/dolivag/qr-city/pull/16) [`bc78b76`](https://github.com/dolivag/qr-city/commit/bc78b767b744a026b21f5a9ba32f678544eaa5bc) Thanks [@dolivag](https://github.com/dolivag)! - Properties set on a `<qr-city>` before the element was defined now win over its attributes and the element mounts once with all of them. Before, a missing attribute could overwrite the property and the element could be created with only part of the configuration.
+- Updated dependencies [[`bc78b76`](https://github.com/dolivag/qr-city/commit/bc78b767b744a026b21f5a9ba32f678544eaa5bc)]:
+  - @qr-city/core@0.3.0
+
 ## 0.2.0
 
 ### Patch Changes
