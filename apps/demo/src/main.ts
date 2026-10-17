@@ -9,6 +9,8 @@ import '@qr-city/core/ultra';
 import { defineQrCity } from '@qr-city/element';
 import type { QrCityElement, QrCityIntroStage } from '@qr-city/element';
 import { createLab, presets } from './lab';
+import { getLang, getTheme, initI18n, onChange, setLang, setText, setTheme, t } from './i18n';
+import type { Key, Lang, Theme } from './i18n';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const city = $<QrCityElement>('city');
@@ -36,6 +38,16 @@ const msg = $('msg');
 const styleDesc = $('style-desc');
 const qrWarn = $('qr-warn');
 
+/** Empties a message and forgets its key, so a language change does not bring it back. */
+const clearText = (node: HTMLElement) => {
+  delete node.dataset.i18n;
+  delete node.dataset.i18nVars;
+  node.textContent = '';
+};
+
+// Language and theme first, so everything below builds in the right language.
+initI18n();
+
 let stage: QrCityIntroStage = 'door';
 let overCity = false; // the form is open on top of an already built city
 let asking = false; // the form is open before a flyover, which starts when it is sent
@@ -51,7 +63,7 @@ function sync() {
   for (const b of [again, check, png, qrSvg, qrPng]) b.disabled = !ready;
   for (const b of [toggle, zoomIn, zoomOut, zoomReset]) b.disabled = !ready || flat;
   zoomValue.textContent = `${Number(city.zoom.toFixed(1))}×`;
-  toggle.textContent = city.view === 'qr' ? 'Ver ciudad' : 'Revelar QR';
+  setText(toggle, city.view === 'qr' ? 'panel.showCity' : 'panel.reveal');
   if (!gate.hidden) setTimeout(() => input.focus({ preventScroll: true }), 350);
 }
 
@@ -60,13 +72,14 @@ const lab = createLab(city, $('lab-controls'), {
   onRestart() {
     // The intro is fixed at creation, so the element started over.
     overCity = false;
-    err.textContent = '';
-    msg.textContent = '';
+    clearText(err);
+    clearText(msg);
     stage = city.stage;
     sync();
   },
   onWarn(text) {
-    qrWarn.textContent = text;
+    if (text) setText(qrWarn, text.key, text.vars);
+    else qrWarn.textContent = '';
     qrWarn.hidden = !text;
   },
   onAsk() {
@@ -76,7 +89,7 @@ const lab = createLab(city, $('lab-controls'), {
     sync();
   },
   onStyle() {
-    styleDesc.textContent = lab.preset.description;
+    setText(styleDesc, `style.${lab.preset.id}.desc` as Key);
     for (const r of document.querySelectorAll<HTMLInputElement>('input[name="style"]')) r.checked = r.value === lab.preset.id;
   },
 });
@@ -104,11 +117,11 @@ presets.forEach((s) => {
     dots.append(d);
   }
   const name = document.createElement('b');
-  name.textContent = s.name;
+  setText(name, `style.${s.id}.name` as Key);
   label.append(radio, dots, name);
   opts.append(label);
 });
-styleDesc.textContent = lab.preset.description;
+setText(styleDesc, `style.${lab.preset.id}.desc` as Key);
 
 city.addEventListener('qr-city-introstage', (e) => {
   stage = (e as CustomEvent<{ stage: QrCityIntroStage }>).detail.stage;
@@ -117,20 +130,21 @@ city.addEventListener('qr-city-introstage', (e) => {
 city.addEventListener('qr-city-viewchange', () => { lab.set({ view: city.view }); sync(); });
 city.addEventListener('qr-city-zoomchange', sync);
 city.addEventListener('qr-city-fallback', () => {
-  msg.textContent = 'Tu navegador no admite WebGL, así que te mostramos el código QR sin la ciudad. Sigue siendo escaneable.';
+  setText(msg, 'msg.noWebgl');
   sync();
 });
 city.addEventListener('qr-city-error', (e) => {
+  clearText(msg);
   msg.textContent = (e as CustomEvent<{ error: Error }>).detail.error.message;
 });
 
 form.addEventListener('submit', (e) => {
   e.preventDefault();
   const value = input.value.trim();
-  if (!value) { err.textContent = 'Escribe un enlace o un texto para el QR.'; return; }
-  if (value.length > 300) { err.textContent = 'Es demasiado largo. Usa menos de 300 caracteres.'; return; }
-  err.textContent = '';
-  msg.textContent = '';
+  if (!value) { setText(err, 'err.empty'); return; }
+  if (value.length > 300) { setText(err, 'err.long'); return; }
+  clearText(err);
+  clearText(msg);
   lab.set({ data: value });
   if (asking) {
     asking = false;
@@ -155,7 +169,7 @@ again.addEventListener('click', () => { overCity = true; sync(); });
 cancel.addEventListener('click', () => {
   overCity = false;
   if (asking) { asking = false; lab.cancelAsk(); }
-  err.textContent = '';
+  clearText(err);
   sync();
 });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && (overCity || asking)) cancel.click(); });
@@ -172,16 +186,17 @@ async function run(action: () => Promise<void> | void) {
   try {
     await action();
   } catch (error) {
+    clearText(msg);
     msg.textContent = (error as Error).message;
   }
 }
 
 png.addEventListener('click', () => run(async () => {
   city.setView('qr', { immediate: true });
-  download(await city.toPNG({ scale: 2 }), 'ciudad-qr.png');
+  download(await city.toPNG({ scale: 2 }), t('file.city'));
 }));
 // The plain, print-ready code (black on white, with its quiet zone), not a picture of the city.
-qrSvg.addEventListener('click', () => run(() => download(new Blob([city.toQrSvg({ title: 'Código QR' })], { type: 'image/svg+xml' }), 'qr.svg')));
+qrSvg.addEventListener('click', () => run(() => download(new Blob([city.toQrSvg({ title: t('qr.title') })], { type: 'image/svg+xml' }), 'qr.svg')));
 qrPng.addEventListener('click', () => run(async () => download(await city.toQrPng({ size: 1024 }), 'qr.png')));
 
 /** Decodes the top-down view as a phone camera would (full size and shrunk) and reports what it reads. */
@@ -189,7 +204,7 @@ async function checkScan() {
   const wanted = lab.state.data;
   scan.hidden = false;
   scan.className = 'scan';
-  scan.textContent = 'Comprobando…';
+  setText(scan, 'scan.checking');
   const previous = city.view;
   city.setView('qr', { immediate: true });
   try {
@@ -210,18 +225,18 @@ async function checkScan() {
     const small = read(3);
     if (full === wanted && small === wanted) {
       scan.className = 'scan ok';
-      scan.textContent = '✓ Se lee: el QR devuelve el texto original, a tamaño completo y reducido (como lo vería una cámara).';
+      setText(scan, 'scan.ok');
     } else if (full === wanted || small === wanted) {
       scan.className = 'scan fail';
-      scan.textContent = `Se lee solo a ${full === wanted ? 'tamaño completo' : 'tamaño reducido'}. Una cámara real podría fallar: aumenta el contraste entre tejados y suelo.`;
+      setText(scan, full === wanted ? 'scan.onlyFull' : 'scan.onlySmall');
     } else {
       scan.className = 'scan fail';
-      scan.textContent = full || small
-        ? `✗ Lee otro texto distinto del esperado: «${full ?? small}».`
-        : '✗ No se puede leer. Revisa los colores: tejados oscuros sobre suelo y calles claros.';
+      if (full || small) setText(scan, 'scan.other', { text: full ?? small ?? '' });
+      else setText(scan, 'scan.none');
     }
   } catch (error) {
     scan.className = 'scan fail';
+    clearText(scan);
     scan.textContent = (error as Error).message;
   } finally {
     city.setView(previous, { immediate: true });
@@ -232,14 +247,33 @@ check.addEventListener('click', () => run(checkScan));
 share.addEventListener('click', async () => {
   const url = lab.shareUrl();
   try {
-    if (navigator.share && matchMedia('(pointer: coarse)').matches) await navigator.share({ title: 'Ciudad QR', url });
-    else { await navigator.clipboard.writeText(url); share.textContent = 'Enlace copiado'; }
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) await navigator.share({ title: t('doc.title'), url });
+    else { await navigator.clipboard.writeText(url); setText(share, 'share.copied'); }
   } catch (error) {
     if ((error as Error).name === 'AbortError') return; // the person closed the share sheet
-    prompt('Copia el enlace', url); // the clipboard is blocked: show the link instead
+    prompt(t('share.prompt'), url); // the clipboard is blocked: show the link instead
   }
-  setTimeout(() => { share.textContent = 'Copiar enlace'; }, 1800);
+  setTimeout(() => { setText(share, 'share.copy'); }, 1800);
 });
 
+// ---- Language and theme controls ------------------------------------------
+const themeBtn = $<HTMLButtonElement>('theme');
+const langBtns = [...document.querySelectorAll<HTMLButtonElement>('[data-lang]')];
+const THEMES: Theme[] = ['auto', 'light', 'dark'];
+function paintBar() {
+  const lang = getLang();
+  for (const b of langBtns) b.setAttribute('aria-pressed', String(b.dataset.lang === lang));
+  themeBtn.textContent = t('theme.label', { name: t(`theme.${getTheme()}` as Key) });
+  themeBtn.setAttribute('aria-label', t('bar.theme') + ': ' + t(`theme.${getTheme()}` as Key));
+}
+for (const b of langBtns) b.addEventListener('click', () => setLang(b.dataset.lang as Lang));
+themeBtn.addEventListener('click', () => setTheme(THEMES[(THEMES.indexOf(getTheme()) + 1) % THEMES.length]));
+onChange(() => {
+  paintBar();
+  sync();
+  // The URL carries the language, so a shared link opens in the one it was shared in.
+  lab.refreshLanguage();
+});
+paintBar();
 
 sync();
