@@ -1,5 +1,12 @@
 # @qr-city/angular
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [[`ac32b3c`](https://github.com/dolivag/qr-city/commit/ac32b3cbd847850b476d6dc92d46d44b5dba7133)]:
+  - @qr-city/core@0.3.1
+
 ## 0.3.0
 
 ### Patch Changes
