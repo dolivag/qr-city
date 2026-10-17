@@ -1,5 +1,11 @@
 # @qr-city/core
 
+## 0.3.1
+
+### Patch Changes
+
+- [#20](https://github.com/dolivag/qr-city/pull/20) [`ac32b3c`](https://github.com/dolivag/qr-city/commit/ac32b3cbd847850b476d6dc92d46d44b5dba7133) Thanks [@dolivag](https://github.com/dolivag)! - Añade el logo a los README de los paquetes.
+
 ## 0.3.0
 
 ### Minor Changes
