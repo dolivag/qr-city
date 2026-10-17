@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/dolivag/qr-city/master/assets/logo/logo-mark.svg" alt="qr-city" width="120"></p>
+
 # @qr-city/angular
 
 Angular component for **qr-city**: a 3D city whose rooftops form a scannable QR code. Standalone, zoneless- and SSR-friendly. Angular ≥ 21, `three` as a *peerDependency*.

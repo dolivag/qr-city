@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/dolivag/qr-city/master/assets/logo/logo-mark.svg" alt="qr-city" width="120"></p>
+
 # @qr-city/vue
 
 Vue 3 component for **qr-city**: a 3D city whose rooftops form a scannable QR code. Vue ≥ 3.3, `three` as a *peerDependency*.

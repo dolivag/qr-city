@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/dolivag/qr-city/master/assets/logo/logo-mark.svg" alt="qr-city" width="120"></p>
+
 # @qr-city/core
 
 Core of **qr-city**: an isometric 3D city whose rooftops form a scannable QR code. No framework dependencies; `three` is a *peerDependency* (`>=0.160 <1`).
