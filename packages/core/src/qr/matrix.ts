@@ -15,6 +15,17 @@ function toByteString(text: string): string {
   return out;
 }
 
+/**
+ * The centered square of modules the plaza covers: `first` row/column and `side` (odd, so it
+ * sits exactly in the middle). `size` is the fraction of the code's side.
+ */
+export function centerSquare(modules: number, size: number): { first: number; side: number } {
+  // Rounded down to an odd side, so the plaza never covers more than asked (small codes have little to spare).
+  let side = Math.max(3, Math.floor(modules * size));
+  if (side % 2 === 0) side -= 1;
+  return { first: (modules - side) / 2, side };
+}
+
 export function createMatrix(data: string, ecc: QrCityEcc): QrMatrix {
   const qr = qrcode(0, ecc);
   qr.addData(toByteString(data));

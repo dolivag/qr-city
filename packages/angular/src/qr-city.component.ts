@@ -21,6 +21,7 @@ import type {
   QrCityIntro,
   QrCityIntroStage,
   QrCityOptions,
+  QrCityPlaza,
   QrCityQuality,
   QrCityStyle,
   QrCityStyleId,
@@ -64,6 +65,8 @@ export class QrCityComponent {
   readonly background = input<string>();
   readonly label = input<string>();
   readonly doorLabel = input<string>();
+  /** A plaza with your picture in the middle of the city: `true` or `{ image, size }`. */
+  readonly plaza = input<boolean | QrCityPlaza>();
 
   /** The city is on screen: it finished building (or the door intro finished). */
   readonly revealed = output<void>();
@@ -99,6 +102,7 @@ export class QrCityComponent {
       background: this.background(),
       label: this.label(),
       doorLabel: this.doorLabel(),
+      plaza: this.plaza(),
     };
     for (const k of Object.keys(all)) if (all[k] === undefined) delete all[k];
     return all as unknown as ConfigOptions;

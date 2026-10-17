@@ -1,5 +1,13 @@
 import type { QrCityEcc, QrCityIntro, QrCityOptions, QrCityQuality, QrCityView } from './types';
 
+/** The plaza as the city builds it: `null` when it is off. */
+export interface ResolvedPlaza {
+  image: string | null;
+  size: number;
+}
+
+export const PLAZA_SIZE = { min: 0.1, max: 0.25, default: 0.2 } as const;
+
 export const MAX_DATA_LENGTH = 300;
 
 const INTROS: readonly QrCityIntro[] = ['door', 'flyover', 'none'];
@@ -9,8 +17,10 @@ const WHEELS: readonly NonNullable<QrCityOptions['wheelZoom']>[] = ['ctrl', 'alw
 const FALLBACKS: readonly NonNullable<QrCityOptions['fallback']>[] = ['qr', 'none'];
 const QUALITIES: readonly QrCityQuality[] = ['auto', 'high', 'low', 'ultra'];
 
-export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio'>> &
-  Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio'>;
+export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio' | 'plaza'>> &
+  Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio'> & {
+    plaza: ResolvedPlaza | null;
+  };
 
 function oneOf<T extends string>(name: string, value: unknown, allowed: readonly T[]): T {
   if (!allowed.includes(value as T)) {
@@ -29,11 +39,23 @@ export function validateData(data: unknown): string {
   return data;
 }
 
+function resolvePlaza(input: QrCityOptions['plaza']): ResolvedPlaza | null {
+  if (!input) return null;
+  const o = input === true ? {} : input;
+  const size = o.size ?? PLAZA_SIZE.default;
+  if (!(size >= PLAZA_SIZE.min && size <= PLAZA_SIZE.max)) {
+    throw new RangeError(`[qr-city] \`plaza.size\` must be between ${PLAZA_SIZE.min} and ${PLAZA_SIZE.max}.`);
+  }
+  if (o.image !== undefined && typeof o.image !== 'string') throw new TypeError('[qr-city] `plaza.image` must be a URL string.');
+  return { image: o.image || null, size };
+}
+
 /** Applies defaults and validates. Throws on invalid input; never touches the DOM. */
 export function resolveOptions(input: QrCityOptions): ResolvedOptions {
   const intro = oneOf('intro', input.intro ?? 'none', INTROS);
   const maxPixelRatio = input.maxPixelRatio;
   if (maxPixelRatio !== undefined && !(maxPixelRatio > 0)) throw new RangeError('[qr-city] `maxPixelRatio` must be greater than 0.');
+  const plaza = resolvePlaza(input.plaza);
   const maxZoom = input.maxZoom ?? 8;
   if (!(maxZoom >= 1)) throw new RangeError('[qr-city] `maxZoom` must be at least 1.');
   return {
@@ -42,7 +64,9 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     intro,
     pauseAtThreshold: input.pauseAtThreshold ?? false,
     view: oneOf('view', input.view ?? 'city', VIEWS),
-    errorCorrection: oneOf('errorCorrection', input.errorCorrection ?? 'M', ECCS),
+    // The plaza covers part of the code: only the highest error correction rebuilds it reliably.
+    errorCorrection: plaza ? 'H' : oneOf('errorCorrection', input.errorCorrection ?? 'M', ECCS),
+    plaza,
     quality: oneOf('quality', input.quality ?? 'auto', QUALITIES),
     interactive: input.interactive ?? true,
     zoomable: input.zoomable ?? true,

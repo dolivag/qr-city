@@ -22,6 +22,10 @@ export interface LabState {
   background: 'style' | 'transparent' | 'white' | 'black';
   label: string;
   doorLabel: string;
+  plaza: boolean;
+  plazaSize: number;
+  /** `custom` is a picture uploaded here: it lives in this page only, never in the link. */
+  plazaImage: 'logo' | 'none' | 'custom';
 }
 
 /** What the library does when an option is left out: the snippets only show what differs from this. */
@@ -41,6 +45,9 @@ const LIB: LabState = {
   background: 'style',
   label: 'QR code city',
   doorLabel: 'Open the door',
+  plaza: false,
+  plazaSize: 0.2,
+  plazaImage: 'logo',
 };
 
 const BACKGROUNDS: Record<LabState['background'], string | undefined> = {
@@ -60,8 +67,9 @@ const ENUMS: Partial<Record<keyof LabState, readonly string[]>> = {
   quality: ['auto', 'low', 'high', 'ultra'],
   fallback: ['qr', 'none'],
   background: ['style', 'transparent', 'white', 'black'],
+  plazaImage: ['logo', 'none'],
 };
-const BOOLEANS = ['pauseAtThreshold', 'interactive', 'zoomable'] as const;
+const BOOLEANS = ['pauseAtThreshold', 'interactive', 'zoomable', 'plaza'] as const;
 const STRINGS: Partial<Record<keyof LabState, number>> = { data: 300, label: 120, doorLabel: 120 };
 
 /** Reads and validates the options of a link: anything unexpected is ignored. */
@@ -77,6 +85,8 @@ function readState(params: URLSearchParams): Partial<LabState> {
   }
   const zoom = Number(params.get('maxZoom'));
   if (params.has('maxZoom') && zoom >= 2 && zoom <= 16) out.maxZoom = Math.round(zoom);
+  const plazaSize = Number(params.get('plazaSize'));
+  if (params.has('plazaSize') && plazaSize >= 0.1 && plazaSize <= 0.25) out.plazaSize = Math.round(plazaSize * 100) / 100;
   for (const [k, max] of Object.entries(STRINGS)) {
     const v = params.get(k);
     if (v) out[k] = v.slice(0, max);
@@ -205,6 +215,14 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
   const state = demoDefaults();
   const params = new URLSearchParams(location.search);
   Object.assign(state, readState(params));
+  /** A picture uploaded for the plaza (a data URL): kept in this page only. */
+  let customImage: string | null = null;
+  const PLAZA_LOGO = '/logo.svg';
+  const plazaOption = () => {
+    if (!state.plaza) return false;
+    const image = state.plazaImage === 'logo' ? PLAZA_LOGO : state.plazaImage === 'custom' ? customImage ?? undefined : undefined;
+    return { image, size: state.plazaSize };
+  };
   /** The intro the element really has (the lab may show another while it waits for the link). */
   let committed = state.intro;
   let preset = presets.find((p) => p.id === params.get('style')) ?? presets[0];
@@ -215,7 +233,9 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
   function shareUrl(): string {
     const q = new URLSearchParams();
     const defaults = demoDefaults();
-    for (const k of Object.keys(state) as (keyof LabState)[]) if (state[k] !== defaults[k]) q.set(k, String(state[k]));
+    for (const k of Object.keys(state) as (keyof LabState)[]) {
+      if (state[k] !== defaults[k] && !(k === 'plazaImage' && state[k] === 'custom')) q.set(k, String(state[k]));
+    }
     q.set('lang', getLang());
     if (preset.id !== presets[0].id) q.set('style', preset.id);
     const tweaks = encodeTweaks(preset, work);
@@ -259,6 +279,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       case 'background': city.background = BACKGROUNDS[state.background]; break;
       case 'label': city.label = state.label; break;
       case 'doorLabel': city.doorLabel = state.doorLabel; break;
+      case 'plaza': case 'plazaSize': case 'plazaImage': city.plaza = plazaOption(); break;
     }
     renderCode();
     syncUrl();
@@ -404,6 +425,22 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       label.append(input, dots, el('b', { textContent: t(`style.${s.id}.name` as Key) }));
       presetsBox.append(label);
     });
+    const upload = (() => {
+      const id = nextId();
+      const f = el('input', { id, type: 'file', accept: 'image/*' });
+      f.addEventListener('change', () => {
+        const file = f.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          customImage = String(reader.result);
+          if (state.plazaImage === 'custom' && state.plaza) apply('plazaImage');
+          else set({ plaza: true, plazaImage: 'custom' });
+        };
+        reader.readAsDataURL(file);
+      });
+      return field(t('f.plazaUpload'), f, id);
+    })();
     const reset = el('button', { type: 'button', textContent: t('b.reset') });
     reset.addEventListener('click', () => selectPreset(preset.id));
 
@@ -436,6 +473,13 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       group(t('g.a11y'), false,
         text('label', t('f.label'), 120),
         text('doorLabel', t('f.doorLabel'), 120),
+      ),
+      group(t('g.plaza'), false,
+        check('plaza', t('f.plaza')),
+        range('plazaSize', t('f.plazaSize'), 0.1, 0.25, 0.01),
+        select('plazaImage', t('f.plazaImage'), [['logo', t('o.plazaLogo')], ['none', t('o.plazaRose')], ['custom', t('o.plazaCustom')]]),
+        upload,
+        el('p', { class: 'tip', textContent: t('f.plazaTip') }),
       ),
       group(t('g.style'), true,
         presetsBox,
@@ -521,6 +565,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     const mine = t('c.myStyle');
     props.push({ key: 'style', value: st.ref ?? mine });
     for (const k of ['intro', 'pauseAtThreshold', 'view', 'errorCorrection', 'quality', 'interactive', 'animate', 'background', 'zoomable', 'maxZoom', 'wheelZoom', 'fallback', 'label', 'doorLabel'] as const) {
+      if (k === 'errorCorrection' && state.plaza) continue; // the plaza forces 'H'
       if (k === 'pauseAtThreshold' && state.intro !== 'door') continue;
       if (state[k] !== LIB[k]) {
         const value = k === 'animate' ? state.animate === 'true' : k === 'background' ? BACKGROUNDS[state.background] ?? '' : state[k];
@@ -528,6 +573,10 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       }
     }
     const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+    // The plaza as each framework writes it: an object, or three attributes on the element.
+    const plazaImage = state.plazaImage === 'logo' ? PLAZA_LOGO : state.plazaImage === 'custom' ? t('c.yourLogo') : null;
+    const plazaObj = state.plaza ? `{ ${plazaImage ? `image: '${plazaImage}', ` : ''}size: ${state.plazaSize} }` : null;
+    const plazaAttrs = state.plaza ? ['plaza', ...(plazaImage ? [`plaza-image="${plazaImage}"`] : []), `plaza-size="${state.plazaSize}"`] : [];
     const ultra = state.quality === 'ultra' ? `import '@qr-city/core/ultra'; // ${t('c.ultra')}\n` : '';
     const custom = st.ref === null;
     const out: string[] = [];
@@ -539,6 +588,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
         if (value === true) return name;
         return `${name}="${value}"`;
       }).filter(Boolean);
+      attrs.push(...plazaAttrs);
       out.push('npm i @qr-city/element three', '', '<script type="module">', `  ${ultra}import '@qr-city/element/define';`);
       if (custom) out.push('  import { styles } from \'@qr-city/core\';', ...st.decl.split('\n').map((l) => `  ${l}`), `  document.querySelector('qr-city').cityStyle = ${mine};`);
       out.push('</script>', '', `<qr-city ${attrs.join('\n         ')}></qr-city>`);
@@ -549,6 +599,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
         if (value === true) return name;
         return typeof value === 'string' ? `${name}="${value}"` : `${name}={${value}}`;
       });
+      if (plazaObj) jsx.push(`plaza={${plazaObj}}`);
       out.push('npm i @qr-city/react three', '', `${ultra}import { QrCity } from '@qr-city/react';`);
       if (custom) out.push("import { styles } from '@qr-city/core';", '', st.decl);
       out.push('', `export function ${t('c.component')}() {`, '  return (', '    <QrCity', ...jsx.map((l) => `      ${l}`), '    />', '  );', '}');
@@ -559,6 +610,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
         if (value === true) return name;
         return typeof value === 'string' ? `${name}="${value}"` : `:${name}="${value}"`;
       });
+      if (plazaObj) attrs.push(`:plaza="${plazaObj}"`);
       out.push('npm i @qr-city/vue three', '', '<script setup lang="ts">', `${ultra}import { QrCity } from '@qr-city/vue';`);
       if (custom) out.push("import { styles } from '@qr-city/core';", '', st.decl);
       out.push('</script>', '', '<template>', '  <QrCity', ...attrs.map((l) => `    ${l}`), '  />', '</template>');
@@ -568,6 +620,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
         if (key === 'style') return custom ? `[${name}]="${mine}"` : `${name}="${value}"`;
         return typeof value === 'string' ? `${name}="${value}"` : `[${name}]="${value}"`;
       });
+      if (plazaObj) attrs.push(`[plaza]="${plazaObj}"`);
       out.push('npm i @qr-city/angular three', '', `${ultra}import { Component } from '@angular/core';`, "import { QrCityComponent } from '@qr-city/angular';");
       if (custom) out.push("import { styles } from '@qr-city/core';", '', st.decl);
       out.push('', '@Component({', `  selector: '${t('c.selector')}',`, '  imports: [QrCityComponent],', '  template: `', '    <qr-city-view', ...attrs.map((l) => `      ${l}`), '    />', '  `,', '})', `export class ${t('c.component')}Component {${custom ? `\n  ${mine} = ${mine};\n` : ''}}`);
@@ -577,6 +630,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
         if (key === 'style') return `  style: ${custom ? mine : `'${value}'`},`;
         return `  ${name}: ${typeof value === 'string' ? `'${value}'` : value},`;
       });
+      if (plazaObj) rows.push(`  plaza: ${plazaObj},`);
       out.push('npm i @qr-city/core three', '', `${ultra}import { createQrCity${custom ? ', styles' : ''} } from '@qr-city/core';`);
       if (custom) out.push('', st.decl);
       out.push('', 'const city = createQrCity(document.querySelector(\'#host\'), {', ...rows, '});');
@@ -604,6 +658,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     city.background = BACKGROUNDS[state.background];
     city.label = state.label;
     city.doorLabel = state.doorLabel;
+    city.plaza = plazaOption();
   }
 
   return {

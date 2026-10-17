@@ -8,6 +8,7 @@ export type {
   QrCityController,
   QrCityDoorTheme,
   QrCityEcc,
+  QrCityPlaza,
   QrCityIntro,
   QrCityIntroStage,
   QrCityOptions,

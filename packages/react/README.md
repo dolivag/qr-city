@@ -32,7 +32,7 @@ export function City() {
 
 ## Props
 
-The same options as [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label`, `doorLabel`, `fallback`) and the callbacks `onReveal`, `onIntroStage`, `onViewChange`, `onZoomChange`, `onFallback` and `onError`, with two differences:
+The same options as [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label`, `doorLabel`, `fallback`, `plaza`) and the callbacks `onReveal`, `onIntroStage`, `onViewChange`, `onZoomChange`, `onFallback` and `onError`, with two differences:
 
 - **`cityStyle`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object), because **`style`** is the container's CSS style.
 - The remaining `<div>` props (`className`, `style`, `aria-*`…) go to the container. By default it is a square as wide as its parent.
@@ -40,7 +40,7 @@ The same options as [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshol
 ## Behaviour
 
 - **Server (SSR, Next.js…):** renders an empty `<div>` and starts WebGL on mount. The package ships `"use client"`.
-- **Prop changes:** applied in place; the city only rebuilds when `data`, `cityStyle`, `errorCorrection` or `quality` change. A style object recreated on every render with the same content rebuilds nothing.
+- **Prop changes:** applied in place; the city only rebuilds when `data`, `cityStyle`, `errorCorrection`, `quality` or `plaza` change. A style object recreated on every render with the same content rebuilds nothing.
 - **`intro`** is fixed at creation: if it changes, the component restarts.
 - **`view`** is applied when it changes; the user can toggle the view with a click without the prop changing.
 - **Callbacks:** the latest one is always called, without recreating the city.

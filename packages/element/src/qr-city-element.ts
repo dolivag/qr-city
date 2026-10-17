@@ -5,6 +5,7 @@ import type {
   QrCityIntro,
   QrCityIntroStage,
   QrCityOptions,
+  QrCityPlaza,
   QrCityQuality,
   QrCityStyle,
   QrCityStyleId,
@@ -18,13 +19,14 @@ const Base: typeof HTMLElement =
 const ATTRIBUTES = [
   'data', 'style-name', 'intro', 'view', 'error-correction', 'quality',
   'animate', 'interactive', 'background', 'label', 'pause-at-threshold', 'door-label', 'zoomable', 'max-zoom', 'wheel-zoom', 'fallback',
+  'plaza', 'plaza-image', 'plaza-size',
 ] as const;
 
 /** Element property → option name (they differ for `cityStyle` and `animated`). */
 const PROPERTY_OPTIONS: Record<string, string> = {
   data: 'data', cityStyle: 'style', intro: 'intro', view: 'view', errorCorrection: 'errorCorrection', quality: 'quality',
   animated: 'animate', interactive: 'interactive', background: 'background', label: 'label', pauseAtThreshold: 'pauseAtThreshold',
-  doorLabel: 'doorLabel', zoomable: 'zoomable', maxZoom: 'maxZoom', wheelZoom: 'wheelZoom', fallback: 'fallback',
+  doorLabel: 'doorLabel', zoomable: 'zoomable', maxZoom: 'maxZoom', wheelZoom: 'wheelZoom', fallback: 'fallback', plaza: 'plaza',
 };
 
 const TEMPLATE_CSS = `
@@ -49,7 +51,8 @@ export interface QrCityEventMap {
  * `animate` (`auto` | `true` | `false`; property `animated`), `interactive` (`false` disables clicks), `background`, `label`,
  * `pause-at-threshold` (with `intro="door"`: wait at the white screen until `continueIntro()`), `door-label`,
  * `zoomable` (`false` disables zoom and pan), `max-zoom`, `wheel-zoom` (`ctrl` | `always` | `off`),
- * `fallback` (`qr` shows a plain QR when WebGL is missing; `none` reports an error instead).
+ * `fallback` (`qr` shows a plain QR when WebGL is missing; `none` reports an error instead),
+ * `plaza` (a plaza in the middle of the city), `plaza-image` (picture on it: a URL) and `plaza-size` (0.1–0.25; property `plaza`).
  * Size it with CSS (default: a square as wide as its container).
  */
 export class QrCityElement extends Base {
@@ -96,6 +99,9 @@ export class QrCityElement extends Base {
 
   get errorCorrection(): QrCityEcc | undefined { return this.#opts.errorCorrection; }
   set errorCorrection(v: QrCityEcc | undefined) { this.#set({ errorCorrection: v }); }
+  /** A plaza with your picture in the middle of the city: `true` or `{ image, size }`. */
+  get plaza(): boolean | QrCityPlaza | undefined { return this.#opts.plaza; }
+  set plaza(v: boolean | QrCityPlaza | undefined) { this.#set({ plaza: v }); }
 
   get quality(): QrCityQuality | undefined { return this.#opts.quality; }
   set quality(v: QrCityQuality | undefined) { this.#set({ quality: v }); }
@@ -210,6 +216,16 @@ export class QrCityElement extends Base {
     return found as Partial<QrCityOptions>;
   }
 
+  /** `plaza`, `plaza-image` and `plaza-size` together: any of them turns the plaza on, `plaza="false"` turns it off. */
+  #plazaAttributes(): QrCityOptions['plaza'] {
+    const on = this.getAttribute('plaza');
+    const image = this.getAttribute('plaza-image');
+    const size = this.getAttribute('plaza-size');
+    if (on === 'false') return false;
+    if (on === null && image === null && size === null) return undefined;
+    return { image: image ?? undefined, size: size === null ? undefined : Number(size) };
+  }
+
   #readAttribute(name: string, value: string | null): void {
     const v = value ?? undefined;
     const o = this.#opts as Record<string, unknown>;
@@ -231,6 +247,7 @@ export class QrCityElement extends Base {
       case 'max-zoom': o.maxZoom = v === undefined ? undefined : Number(v); break;
       case 'wheel-zoom': o.wheelZoom = v; break;
       case 'fallback': o.fallback = v; break;
+      case 'plaza': case 'plaza-image': case 'plaza-size': o.plaza = this.#plazaAttributes(); break;
     }
     Object.assign(o, kept); // properties set before the upgrade win over attributes (as in Lit)
   }

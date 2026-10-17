@@ -27,7 +27,7 @@ export class CityComponent {
 
 ## Inputs and outputs
 
-The same options as [`createQrCity`](../core), as `input()`s: `data` (required), `cityStyle`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `fallback`, `background`, `label` and `doorLabel`. **`cityStyle`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object).
+The same options as [`createQrCity`](../core), as `input()`s: `data` (required), `cityStyle`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `fallback`, `background`, `label`, `doorLabel` and `plaza`. **`cityStyle`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object).
 
 | Output | Payload |
 | --- | --- |
@@ -44,7 +44,7 @@ The selector is `qr-city-view` (so it does not clash with the `<qr-city>` Web Co
 
 - **Server (SSR):** WebGL starts in `afterNextRender`, which does not run on the server.
 - **Zone:** the animation loop runs outside `NgZone`, so it does not trigger change detection every frame. Outputs are emitted inside the zone.
-- **Input changes:** applied in place; the city only rebuilds when `data`, `cityStyle`, `errorCorrection` or `quality` change.
+- **Input changes:** applied in place; the city only rebuilds when `data`, `cityStyle`, `errorCorrection`, `quality` or `plaza` change.
 - **`intro`** is fixed at creation: if it changes, the component restarts.
 - **Without WebGL** a flat, scannable QR is shown and `fallbackUsed` is emitted (`fallback="none"` to get a `qrError` instead). **Other errors** (invalid data…) reach `qrError`; in dev mode they are also written to the console.
 - **Printable QR:** `toQrSvg()` / `toQrPng()` on the component, or `qrToSvg(data)` / `qrToPng(data)` (exported).

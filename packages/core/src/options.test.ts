@@ -59,4 +59,17 @@ describe('styles', () => {
     expect(Object.keys(styles)).toEqual(['moderna', 'costera', 'ciberpunk', 'nevada']);
     for (const [id, s] of Object.entries(styles)) expect(s.id).toBe(id);
   });
+
+  it('plaza: off by default; on, it forces the highest error correction', () => {
+    expect(resolveOptions({ data: 'x' }).plaza).toBeNull();
+    expect(resolveOptions({ data: 'x', plaza: false }).plaza).toBeNull();
+    const on = resolveOptions({ data: 'x', plaza: true, errorCorrection: 'L' });
+    expect(on.plaza).toEqual({ image: null, size: 0.2 });
+    expect(on.errorCorrection).toBe('H');
+    expect(resolveOptions({ data: 'x', plaza: { image: 'logo.png', size: 0.25 } }).plaza).toEqual({ image: 'logo.png', size: 0.25 });
+  });
+
+  it.each([0.05, 0.3, Number.NaN])('plaza: rejects size %p', (size) => {
+    expect(() => resolveOptions({ data: 'x', plaza: { size } })).toThrow(/plaza.size/);
+  });
 });
