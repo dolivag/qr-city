@@ -12,12 +12,18 @@
   --radius: 4px;
   color-scheme: light;
 }
+/* Dark follows the system unless the page forces a theme (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #1a1916; --panel: #22211d; --ink: #ece7da; --muted: #a19b8c; --line: #38352e;
     --accent: #e0643a; --accent-ink: #1a1916;
     color-scheme: dark;
   }
+}
+:root[data-theme='dark'] {
+  --bg: #1a1916; --panel: #22211d; --ink: #ece7da; --muted: #a19b8c; --line: #38352e;
+  --accent: #e0643a; --accent-ink: #1a1916;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -28,7 +34,8 @@ body {
   /* Crumpled-paper shading, generated for this project: the base color is baked into the image. */
   background: var(--bg) url("/papel.webp") repeat; background-size: 1200px;
 }
-@media (prefers-color-scheme: dark) { body { background-image: url("/papel-oscuro.webp"); } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) body { background-image: url("/papel-oscuro.webp"); } }
+:root[data-theme='dark'] body { background-image: url("/papel-oscuro.webp"); }
 
 main {
   max-width: 1040px; margin: 0 auto; padding: 32px 20px 24px;
@@ -37,6 +44,14 @@ main {
 .head { display: grid; gap: 6px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
 h1 { margin: 0; font: 400 clamp(34px, 6vw, 52px)/1 var(--title); letter-spacing: -0.02em; }
 h1 em, h2 em { font-style: normal; color: var(--accent); }
+.bar { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.bar button { padding: 9px 11px; text-align: center; }
+.seg { display: inline-flex; }
+.seg button + button { margin-left: -1px; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.seg button[aria-pressed='true'] { background: var(--ink); color: var(--bg); }
 .lede { margin: 0; color: var(--muted); max-width: 46ch; }
 
 .stage { position: relative; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: #efebe2; }

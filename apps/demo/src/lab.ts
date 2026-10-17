@@ -2,6 +2,8 @@ import { checkStyle, styles } from '@qr-city/core';
 import type { QrCityStyle, QrCityStyleId } from '@qr-city/core';
 import type { QrCityElement } from '@qr-city/element';
 import { paper } from './paper-style';
+import { getLang, isDefaultText, setText, t } from './i18n';
+import type { Key } from './i18n';
 
 /** Every option the element exposes, as the demo lets people play with it. */
 export interface LabState {
@@ -170,6 +172,8 @@ export interface Lab {
   start(): void;
   /** The link that reproduces the current configuration. */
   shareUrl(): string;
+  /** Rebuilds what is written in the current language (controls, warning, code, link). */
+  refreshLanguage(): void;
   /** Starts the flyover (after the demo has asked what to build). */
   startFlyover(): void;
   /** Gives up on a pending flyover and goes back to the intro the element really has. */
@@ -182,22 +186,23 @@ interface Hooks {
   onRestart(): void;
   /** The style or the preset changed. */
   onStyle(): void;
-  /** Text of the scan-ability warning, or '' when the colours are fine. */
-  onWarn(text: string): void;
+  /** The scan-ability warning (a message key with its values), or null when the colours are fine. */
+  onWarn(warning: { key: Key; vars: Record<string, string> } | null): void;
   /** The flyover starts the moment the element is created, so the demo asks for the link first. */
   onAsk(): void;
 }
 
 export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks): Lab {
-  const state: LabState = {
+  /** What the demo starts with (the two names follow the language). */
+  const demoDefaults = (): LabState => ({
     ...LIB,
     data: 'https://github.com/dolivag/qr-city',
     intro: 'door',
     pauseAtThreshold: true,
-    label: 'Ciudad 3D cuyos tejados forman un código QR',
-    doorLabel: 'Abrir la puerta',
-  };
-  const demoDefaults = { ...state };
+    label: t('city.label'),
+    doorLabel: t('city.doorLabel'),
+  });
+  const state = demoDefaults();
   const params = new URLSearchParams(location.search);
   Object.assign(state, readState(params));
   /** The intro the element really has (the lab may show another while it waits for the link). */
@@ -209,7 +214,9 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
   /** The link that reproduces what is on screen. */
   function shareUrl(): string {
     const q = new URLSearchParams();
-    for (const k of Object.keys(state) as (keyof LabState)[]) if (state[k] !== demoDefaults[k]) q.set(k, String(state[k]));
+    const defaults = demoDefaults();
+    for (const k of Object.keys(state) as (keyof LabState)[]) if (state[k] !== defaults[k]) q.set(k, String(state[k]));
+    q.set('lang', getLang());
     if (preset.id !== presets[0].id) q.set('style', preset.id);
     const tweaks = encodeTweaks(preset, work);
     if (tweaks) q.set('tweaks', tweaks);
@@ -275,13 +282,21 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     city.cityStyle = effectiveStyle();
     hooks.onStyle();
     renderCode();
-    const check = checkStyle(work);
-    const text = check.ok
-      ? ''
-      : `Contraste bajo entre los tejados y el suelo (${check.contrast.toFixed(1).replace('.', ',')}:1). Con menos de 4,5:1 el QR puede no escanearse: usa tejados oscuros sobre un suelo y unas calles claros.`;
-    warn.textContent = text;
-    hooks.onWarn(text);
+    updateWarn();
     syncUrl();
+  }
+
+  function updateWarn() {
+    const check = checkStyle(work);
+    if (check.ok) {
+      warn.textContent = '';
+      delete warn.dataset.i18n;
+      hooks.onWarn(null);
+      return;
+    }
+    const vars = { ratio: new Intl.NumberFormat(getLang(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(check.contrast) };
+    setText(warn, 'warn.contrast', vars);
+    hooks.onWarn({ key: 'warn.contrast', vars });
   }
 
   function selectPreset(id: string) {
@@ -372,81 +387,92 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     return d;
   };
 
-  const presetsBox = el('div', { class: 'opts' });
-  presets.forEach((s) => {
-    const label = el('label', { class: 'opt' });
-    const input = el('input', { type: 'radio', name: 'lab-preset', value: s.id });
-    input.addEventListener('change', () => selectPreset(s.id));
-    syncers.push(() => { input.checked = s.id === preset.id; });
-    const dots = el('span', { class: 'dots' });
-    for (const c of [...s.palette.towers.slice(0, 3), s.palette.roof]) { const d = el('i'); d.style.background = c; dots.append(d); }
-    label.append(input, dots, el('b', { textContent: s.name }));
-    presetsBox.append(label);
-  });
-  const reset = el('button', { type: 'button', textContent: 'Restaurar estilo' });
-  reset.addEventListener('click', () => selectPreset(preset.id));
+  /** The controls are written in the current language, so a language change builds them again. */
+  function buildControls() {
+    const wasOpen = [...root.querySelectorAll('details')].map((d) => d.open);
+    syncers.length = 0;
+    root.replaceChildren();
 
-  const towerColors = [0, 1, 2, 3, 4, 5].map((i) =>
-    color(`Torre ${i + 1}`, () => work.palette.towers[i] ?? work.palette.towers[0], (v) => { if (i < work.palette.towers.length) work.palette.towers[i] = v; }));
-  const w = () => work;
+    const presetsBox = el('div', { class: 'opts' });
+    presets.forEach((s) => {
+      const label = el('label', { class: 'opt' });
+      const input = el('input', { type: 'radio', name: 'lab-preset', value: s.id });
+      input.addEventListener('change', () => selectPreset(s.id));
+      syncers.push(() => { input.checked = s.id === preset.id; });
+      const dots = el('span', { class: 'dots' });
+      for (const c of [...s.palette.towers.slice(0, 3), s.palette.roof]) { const d = el('i'); d.style.background = c; dots.append(d); }
+      label.append(input, dots, el('b', { textContent: t(`style.${s.id}.name` as Key) }));
+      presetsBox.append(label);
+    });
+    const reset = el('button', { type: 'button', textContent: t('b.reset') });
+    reset.addEventListener('click', () => selectPreset(preset.id));
 
-  root.append(
-    group('Entrada', true,
-      select('intro', 'Intro', [['door', 'Puerta'], ['flyover', 'Sobrevuelo'], ['none', 'Ninguna']]),
-      check('pauseAtThreshold', 'Pausar tras la puerta (pause-at-threshold)'),
-      select('animate', 'Animación', [['auto', 'Automática (respeta reduced-motion)'], ['true', 'Siempre'], ['false', 'Nunca']]),
-    ),
-    group('Vista y zoom', false,
-      select('view', 'Vista inicial', [['city', 'Ciudad'], ['qr', 'QR (cenital)']]),
-      check('interactive', 'Clic o Enter alternan la vista'),
-      check('zoomable', 'Zoom y desplazamiento'),
-      range('maxZoom', 'Zoom máximo', 2, 16, 1),
-      select('wheelZoom', 'Rueda del ratón', [['ctrl', 'Ctrl + rueda'], ['always', 'Siempre'], ['off', 'Desactivada']]),
-    ),
-    group('Código QR', false,
-      text('data', 'Enlace o texto', 300),
-      select('errorCorrection', 'Corrección de errores', [['L', 'L · 7 %'], ['M', 'M · 15 %'], ['Q', 'Q · 25 %'], ['H', 'H · 30 %']]),
-    ),
-    group('Calidad y respaldo', false,
-      select('quality', 'Calidad', [['auto', 'Automática'], ['low', 'Baja (móviles)'], ['high', 'Alta'], ['ultra', 'Ultra']]),
-      select('fallback', 'Sin WebGL', [['qr', 'Mostrar un QR plano'], ['none', 'Emitir un error']]),
-      select('background', 'Fondo', [['style', 'El del estilo'], ['transparent', 'Transparente'], ['white', 'Blanco'], ['black', 'Negro']]),
-    ),
-    group('Accesibilidad', false,
-      text('label', 'Nombre accesible (label)', 120),
-      text('doorLabel', 'Nombre de la puerta (door-label)', 120),
-    ),
-    group('Estilo', true,
-      presetsBox,
-      warn,
-    ),
-    group('Editar estilo', false,
-      color('Cielo', () => w().palette.sky, (v) => { w().palette.sky = v; }),
-      color('Suelo', () => w().palette.walk, (v) => { w().palette.walk = v; w().palette.ground = v; }),
-      color('Calles', () => w().palette.road, (v) => { w().palette.road = v; }),
-      color('Tejados (oscuros)', () => w().palette.roof, (v) => { w().palette.roof = v; }),
-      color('Ventanas', () => w().buildings.windowColor, (v) => { w().buildings.windowColor = v; }),
-      ...towerColors,
-      styleRange('Altura de los edificios', () => w().buildings.heightMul, (v) => { w().buildings.heightMul = v; }, 0.3, 1.5, 0.05),
-      styleRange('Casas bajas', () => w().buildings.houseBias, (v) => { w().buildings.houseBias = v; }, 0, 1, 0.05),
-      styleRange('Rascacielos', () => w().buildings.skyBias, (v) => { w().buildings.skyBias = v; }, 0, 1, 0.05),
-      styleSelect('Vegetación', () => w().vegetation.kind, (v) => { w().vegetation.kind = v as QrCityStyle['vegetation']['kind']; },
-        [['round', 'Árboles'], ['palm', 'Palmeras'], ['pine', 'Pinos'], ['neon', 'Neón']]),
-      color('Color de la vegetación', () => w().vegetation.colors[0] ?? '#a8d5b0', (v) => { w().vegetation.colors = [v, ...w().vegetation.colors.slice(1)]; }),
-      color('Color de los coches', () => w().traffic.carColors[0] ?? '#f4a5a0', (v) => { w().traffic.carColors = [v, ...w().traffic.carColors.slice(1)]; }),
-      styleSelect('Fauna', () => w().flyers.kind, (v) => { w().flyers.kind = v as QrCityStyle['flyers']['kind']; },
-        [['birds', 'Pájaros'], ['gulls', 'Gaviotas'], ['drones', 'Drones'], ['snow', 'Nieve']]),
-      color('Color de la fauna', () => w().flyers.color, (v) => { w().flyers.color = v; }),
-      reset,
-    ),
-  );
+    const towerColors = [0, 1, 2, 3, 4, 5].map((i) =>
+      color(t('f.tower', { n: i + 1 }), () => work.palette.towers[i] ?? work.palette.towers[0], (v) => { if (i < work.palette.towers.length) work.palette.towers[i] = v; }));
+    const w = () => work;
+
+    root.append(
+      group(t('g.entry'), true,
+        select('intro', t('f.intro'), [['door', t('o.door')], ['flyover', t('o.flyover')], ['none', t('o.none')]]),
+        check('pauseAtThreshold', t('f.pause')),
+        select('animate', t('f.animate'), [['auto', t('o.animAuto')], ['true', t('o.always')], ['false', t('o.never')]]),
+      ),
+      group(t('g.view'), false,
+        select('view', t('f.view'), [['city', t('o.city')], ['qr', t('o.qr')]]),
+        check('interactive', t('f.interactive')),
+        check('zoomable', t('f.zoomable')),
+        range('maxZoom', t('f.maxZoom'), 2, 16, 1),
+        select('wheelZoom', t('f.wheel'), [['ctrl', t('o.ctrl')], ['always', t('o.always')], ['off', t('o.off')]]),
+      ),
+      group(t('g.qr'), false,
+        text('data', t('f.data'), 300),
+        select('errorCorrection', t('f.ec'), [['L', 'L · 7 %'], ['M', 'M · 15 %'], ['Q', 'Q · 25 %'], ['H', 'H · 30 %']]),
+      ),
+      group(t('g.quality'), false,
+        select('quality', t('f.quality'), [['auto', t('o.auto')], ['low', t('o.low')], ['high', t('o.high')], ['ultra', t('o.ultra')]]),
+        select('fallback', t('f.fallback'), [['qr', t('o.flatQr')], ['none', t('o.error')]]),
+        select('background', t('f.background'), [['style', t('o.bgStyle')], ['transparent', t('o.transparent')], ['white', t('o.white')], ['black', t('o.black')]]),
+      ),
+      group(t('g.a11y'), false,
+        text('label', t('f.label'), 120),
+        text('doorLabel', t('f.doorLabel'), 120),
+      ),
+      group(t('g.style'), true,
+        presetsBox,
+        warn,
+      ),
+      group(t('g.edit'), false,
+        color(t('f.sky'), () => w().palette.sky, (v) => { w().palette.sky = v; }),
+        color(t('f.ground'), () => w().palette.walk, (v) => { w().palette.walk = v; w().palette.ground = v; }),
+        color(t('f.roads'), () => w().palette.road, (v) => { w().palette.road = v; }),
+        color(t('f.roofs'), () => w().palette.roof, (v) => { w().palette.roof = v; }),
+        color(t('f.windows'), () => w().buildings.windowColor, (v) => { w().buildings.windowColor = v; }),
+        ...towerColors,
+        styleRange(t('f.height'), () => w().buildings.heightMul, (v) => { w().buildings.heightMul = v; }, 0.3, 1.5, 0.05),
+        styleRange(t('f.houses'), () => w().buildings.houseBias, (v) => { w().buildings.houseBias = v; }, 0, 1, 0.05),
+        styleRange(t('f.skyscrapers'), () => w().buildings.skyBias, (v) => { w().buildings.skyBias = v; }, 0, 1, 0.05),
+        styleSelect(t('f.vegetation'), () => w().vegetation.kind, (v) => { w().vegetation.kind = v as QrCityStyle['vegetation']['kind']; },
+          [['round', t('o.trees')], ['palm', t('o.palms')], ['pine', t('o.pines')], ['neon', t('o.neon')]]),
+        color(t('f.vegColor'), () => w().vegetation.colors[0] ?? '#a8d5b0', (v) => { w().vegetation.colors = [v, ...w().vegetation.colors.slice(1)]; }),
+        color(t('f.carColor'), () => w().traffic.carColors[0] ?? '#f4a5a0', (v) => { w().traffic.carColors = [v, ...w().traffic.carColors.slice(1)]; }),
+        styleSelect(t('f.fauna'), () => w().flyers.kind, (v) => { w().flyers.kind = v as QrCityStyle['flyers']['kind']; },
+          [['birds', t('o.birds')], ['gulls', t('o.gulls')], ['drones', t('o.drones')], ['snow', t('o.snow')]]),
+        color(t('f.faunaColor'), () => w().flyers.color, (v) => { w().flyers.color = v; }),
+        reset,
+      ),
+    );
+    root.querySelectorAll('details').forEach((d, i) => { if (wasOpen[i] !== undefined) d.open = wasOpen[i]; });
+    for (const s of syncers) s();
+  }
+  buildControls();
 
   // ---- Code ------------------------------------------------------------------
   const tabs = el('div', { class: 'tabs', role: 'tablist' });
   const pre = el('pre');
   const code = el('code');
   pre.append(code);
-  const copy = el('button', { type: 'button', textContent: 'Copiar', class: 'copy' });
+  const copy = el('button', { type: 'button', class: 'copy' });
+  setText(copy, 'c.copy');
   let framework: Framework = 'element';
   const tabButtons = new Map<Framework, HTMLButtonElement>();
   for (const f of FRAMEWORKS) {
@@ -463,11 +489,11 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
   copy.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(code.textContent ?? '');
-      copy.textContent = 'Copiado';
+      setText(copy, 'c.copied');
     } catch {
-      copy.textContent = 'No se pudo copiar';
+      setText(copy, 'c.failed');
     }
-    setTimeout(() => { copy.textContent = 'Copiar'; }, 1500);
+    setTimeout(() => { setText(copy, 'c.copy'); }, 1500);
   });
   const codeBox = document.getElementById('code-box');
   codeBox?.append(tabs, pre, copy);
@@ -483,7 +509,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       for (const [k, v] of Object.entries(mine[g])) if (JSON.stringify(v) !== JSON.stringify(base[g][k])) changed[k] = v;
       if (Object.keys(changed).length) parts.push(`  ${g}: { ...styles.${baseOf(preset)}.${g}, ${Object.entries(changed).map(([k, v]) => `${k}: ${lit(v)}`).join(', ')} },`);
     }
-    const decl = `const miEstilo = {\n  ...styles.${baseOf(preset)},\n${parts.join('\n')}\n};`;
+    const decl = `const ${t('c.myStyle')} = {\n  ...styles.${baseOf(preset)},\n${parts.join('\n')}\n};`;
     return { ref: null, decl };
   }
 
@@ -492,7 +518,8 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     type P = { key: keyof LabState | 'style'; value: string | number | boolean };
     const props: P[] = [{ key: 'data', value: state.data }];
     const st = styleSnippet();
-    props.push({ key: 'style', value: st.ref ?? 'miEstilo' });
+    const mine = t('c.myStyle');
+    props.push({ key: 'style', value: st.ref ?? mine });
     for (const k of ['intro', 'pauseAtThreshold', 'view', 'errorCorrection', 'quality', 'interactive', 'animate', 'background', 'zoomable', 'maxZoom', 'wheelZoom', 'fallback', 'label', 'doorLabel'] as const) {
       if (k === 'pauseAtThreshold' && state.intro !== 'door') continue;
       if (state[k] !== LIB[k]) {
@@ -501,7 +528,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       }
     }
     const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
-    const ultra = state.quality === 'ultra' ? "import '@qr-city/core/ultra'; // partes modeladas extra de la calidad ultra\n" : '';
+    const ultra = state.quality === 'ultra' ? `import '@qr-city/core/ultra'; // ${t('c.ultra')}\n` : '';
     const custom = st.ref === null;
     const out: string[] = [];
 
@@ -513,22 +540,22 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
         return `${name}="${value}"`;
       }).filter(Boolean);
       out.push('npm i @qr-city/element three', '', '<script type="module">', `  ${ultra}import '@qr-city/element/define';`);
-      if (custom) out.push('  import { styles } from \'@qr-city/core\';', ...st.decl.split('\n').map((l) => `  ${l}`), "  document.querySelector('qr-city').cityStyle = miEstilo;");
+      if (custom) out.push('  import { styles } from \'@qr-city/core\';', ...st.decl.split('\n').map((l) => `  ${l}`), `  document.querySelector('qr-city').cityStyle = ${mine};`);
       out.push('</script>', '', `<qr-city ${attrs.join('\n         ')}></qr-city>`);
     } else if (framework === 'react') {
       const jsx = props.map(({ key, value }) => {
         const name = key === 'style' ? 'cityStyle' : key;
-        if (key === 'style') return custom ? `${name}={miEstilo}` : `${name}="${value}"`;
+        if (key === 'style') return custom ? `${name}={${mine}}` : `${name}="${value}"`;
         if (value === true) return name;
         return typeof value === 'string' ? `${name}="${value}"` : `${name}={${value}}`;
       });
       out.push('npm i @qr-city/react three', '', `${ultra}import { QrCity } from '@qr-city/react';`);
       if (custom) out.push("import { styles } from '@qr-city/core';", '', st.decl);
-      out.push('', 'export function Ciudad() {', '  return (', '    <QrCity', ...jsx.map((l) => `      ${l}`), '    />', '  );', '}');
+      out.push('', `export function ${t('c.component')}() {`, '  return (', '    <QrCity', ...jsx.map((l) => `      ${l}`), '    />', '  );', '}');
     } else if (framework === 'vue') {
       const attrs = props.map(({ key, value }) => {
         const name = key === 'style' ? 'city-style' : kebab(key);
-        if (key === 'style') return custom ? `:${name}="miEstilo"` : `${name}="${value}"`;
+        if (key === 'style') return custom ? `:${name}="${mine}"` : `${name}="${value}"`;
         if (value === true) return name;
         return typeof value === 'string' ? `${name}="${value}"` : `:${name}="${value}"`;
       });
@@ -538,16 +565,16 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     } else if (framework === 'angular') {
       const attrs = props.map(({ key, value }) => {
         const name = key === 'style' ? 'cityStyle' : key;
-        if (key === 'style') return custom ? `[${name}]="miEstilo"` : `${name}="${value}"`;
+        if (key === 'style') return custom ? `[${name}]="${mine}"` : `${name}="${value}"`;
         return typeof value === 'string' ? `${name}="${value}"` : `[${name}]="${value}"`;
       });
       out.push('npm i @qr-city/angular three', '', `${ultra}import { Component } from '@angular/core';`, "import { QrCityComponent } from '@qr-city/angular';");
       if (custom) out.push("import { styles } from '@qr-city/core';", '', st.decl);
-      out.push('', '@Component({', "  selector: 'app-ciudad',", '  imports: [QrCityComponent],', '  template: `', '    <qr-city-view', ...attrs.map((l) => `      ${l}`), '    />', '  `,', '})', `export class CiudadComponent {${custom ? '\n  miEstilo = miEstilo;\n' : ''}}`);
+      out.push('', '@Component({', `  selector: '${t('c.selector')}',`, '  imports: [QrCityComponent],', '  template: `', '    <qr-city-view', ...attrs.map((l) => `      ${l}`), '    />', '  `,', '})', `export class ${t('c.component')}Component {${custom ? `\n  ${mine} = ${mine};\n` : ''}}`);
     } else {
       const rows = props.map(({ key, value }) => {
         const name = key === 'style' ? 'style' : key;
-        if (key === 'style') return `  style: ${custom ? 'miEstilo' : `'${value}'`},`;
+        if (key === 'style') return `  style: ${custom ? mine : `'${value}'`},`;
         return `  ${name}: ${typeof value === 'string' ? `'${value}'` : value},`;
       });
       out.push('npm i @qr-city/core three', '', `${ultra}import { createQrCity${custom ? ', styles' : ''} } from '@qr-city/core';`);
@@ -588,6 +615,17 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       applyStyle();
     },
     shareUrl,
+    refreshLanguage() {
+      // The two accessible names follow the language while they still hold a default text.
+      const next: Partial<LabState> = {};
+      if (isDefaultText('city.label', state.label)) next.label = t('city.label');
+      if (isDefaultText('city.doorLabel', state.doorLabel)) next.doorLabel = t('city.doorLabel');
+      set(next);
+      buildControls();
+      updateWarn();
+      renderCode();
+      syncUrl();
+    },
     startFlyover() {
       committed = 'flyover';
       city.pauseAtThreshold = false;
