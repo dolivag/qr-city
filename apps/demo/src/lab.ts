@@ -69,10 +69,23 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLEl
   return node;
 };
 
+/** WCAG relative luminance of a `#rrggbb` colour. */
 const luminance = (hex: string) => {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
+
+/** Contrast between the rooftops and the lightest-to-darkest ground the QR sits on (1–21). */
+export function qrContrast(s: QrCityStyle): number {
+  const light = Math.min(...[s.palette.walk, s.palette.ground, s.palette.road].map(luminance));
+  return (light + 0.05) / (luminance(s.palette.roof) + 0.05);
+}
+
+/** Below this the code gets hard to scan. */
+const MIN_CONTRAST = 4.5;
 
 /** A JS literal with single quotes and short arrays on one line. */
 function lit(v: unknown, indent = 0): string {
@@ -91,6 +104,10 @@ export interface Lab {
   /** Updates options (state, controls and element) from outside, e.g. the entrance form. */
   set(partial: Partial<LabState>): void;
   selectPreset(id: string): void;
+  /** Starts the flyover (after the demo has asked what to build). */
+  startFlyover(): void;
+  /** Gives up on a pending flyover and goes back to the intro the element really has. */
+  cancelAsk(): void;
   readonly preset: QrCityStyle;
 }
 
@@ -99,6 +116,10 @@ interface Hooks {
   onRestart(): void;
   /** The style or the preset changed. */
   onStyle(): void;
+  /** Text of the scan-ability warning, or '' when the colours are fine. */
+  onWarn(text: string): void;
+  /** The flyover starts the moment the element is created, so the demo asks for the link first. */
+  onAsk(): void;
 }
 
 export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks): Lab {
@@ -110,6 +131,8 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     label: 'Ciudad 3D cuyos tejados forman un código QR',
     doorLabel: 'Abrir la puerta',
   };
+  /** The intro the element really has (the lab may show another while it waits for the link). */
+  let committed = state.intro;
   let preset = presets[0];
   let work: QrCityStyle = structuredClone(preset);
   const syncers: (() => void)[] = [];
@@ -124,7 +147,9 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     switch (key) {
       case 'data': city.data = state.data; break;
       case 'intro': {
+        if (state.intro === 'flyover') { hooks.onAsk(); break; }
         // The intro is fixed when a city is created: the element starts over.
+        committed = state.intro;
         city.pauseAtThreshold = state.intro === 'door' ? state.pauseAtThreshold : false;
         city.intro = state.intro;
         hooks.onRestart();
@@ -167,9 +192,12 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     city.cityStyle = effectiveStyle();
     hooks.onStyle();
     renderCode();
-    warn.textContent = luminance(work.palette.roof) > 0.4
-      ? 'Con tejados tan claros el QR no se podrá leer: deben ser oscuros sobre un suelo claro.'
-      : luminance(work.palette.walk) < 0.55 ? 'Con un suelo tan oscuro el QR no se podrá leer: el suelo debe ser claro.' : '';
+    const ratio = qrContrast(work);
+    const text = ratio < MIN_CONTRAST
+      ? `Contraste bajo entre los tejados y el suelo (${ratio.toFixed(1).replace('.', ',')}:1). Con menos de ${String(MIN_CONTRAST).replace('.', ',')}:1 el QR puede no escanearse: usa tejados oscuros sobre un suelo y unas calles claros.`
+      : '';
+    warn.textContent = text;
+    hooks.onWarn(text);
   }
 
   function selectPreset(id: string) {
@@ -452,6 +480,18 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     state,
     set,
     selectPreset,
+    startFlyover() {
+      committed = 'flyover';
+      city.pauseAtThreshold = false;
+      city.intro = 'flyover';
+      hooks.onRestart();
+    },
+    cancelAsk() {
+      if (state.intro === committed) return;
+      state.intro = committed;
+      for (const s of syncers) s();
+      renderCode();
+    },
     get preset() { return preset; },
   };
 }

@@ -31,16 +31,18 @@ const zoomReset = $<HTMLButtonElement>('zoom-reset');
 const zoomValue = $('zoom-value');
 const msg = $('msg');
 const styleDesc = $('style-desc');
+const qrWarn = $('qr-warn');
 
 let stage: QrCityIntroStage = 'door';
 let overCity = false; // the form is open on top of an already built city
+let asking = false; // the form is open before a flyover, which starts when it is sent
 
 function sync() {
   hint.hidden = stage !== 'door';
   skip.hidden = stage !== 'flying';
-  gate.hidden = !(stage === 'threshold' || overCity);
+  gate.hidden = !(stage === 'threshold' || overCity || asking);
   gate.classList.toggle('over', overCity);
-  cancel.hidden = !overCity;
+  cancel.hidden = !(overCity || asking);
   const ready = stage === 'done' && !overCity;
   const flat = city.usingFallback; // no WebGL: only the plain QR exists
   for (const b of [again, png, qrSvg, qrPng]) b.disabled = !ready;
@@ -58,6 +60,16 @@ const lab = createLab(city, $('lab-controls'), {
     err.textContent = '';
     msg.textContent = '';
     stage = city.stage;
+    sync();
+  },
+  onWarn(text) {
+    qrWarn.textContent = text;
+    qrWarn.hidden = !text;
+  },
+  onAsk() {
+    overCity = false;
+    asking = true;
+    input.value = lab.state.data;
     sync();
   },
   onStyle() {
@@ -115,6 +127,11 @@ form.addEventListener('submit', (e) => {
   err.textContent = '';
   msg.textContent = '';
   lab.set({ data: value });
+  if (asking) {
+    asking = false;
+    lab.startFlyover();
+    return;
+  }
   if (stage === 'threshold') {
     city.continueIntro();
   } else {
@@ -130,8 +147,13 @@ zoomOut.addEventListener('click', () => city.zoomBy(1 / 1.6));
 zoomReset.addEventListener('click', () => city.resetZoom());
 toggle.addEventListener('click', () => city.toggleView());
 again.addEventListener('click', () => { overCity = true; sync(); });
-cancel.addEventListener('click', () => { overCity = false; err.textContent = ''; sync(); });
-addEventListener('keydown', (e) => { if (e.key === 'Escape' && overCity) cancel.click(); });
+cancel.addEventListener('click', () => {
+  overCity = false;
+  if (asking) { asking = false; lab.cancelAsk(); }
+  err.textContent = '';
+  sync();
+});
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && (overCity || asking)) cancel.click(); });
 
 function download(blob: Blob, name: string) {
   const a = document.createElement('a');
