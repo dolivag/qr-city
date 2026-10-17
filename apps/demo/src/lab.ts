@@ -216,7 +216,6 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     const q = new URLSearchParams();
     const defaults = demoDefaults();
     for (const k of Object.keys(state) as (keyof LabState)[]) if (state[k] !== defaults[k]) q.set(k, String(state[k]));
-    q.set('lang', getLang());
     if (preset.id !== presets[0].id) q.set('style', preset.id);
     const tweaks = encodeTweaks(preset, work);
     if (tweaks) q.set('tweaks', tweaks);
