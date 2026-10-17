@@ -121,6 +121,20 @@ describe('<qr-city>', () => {
     expect(lastOptions.data).toBe('early');
   });
 
+  it('lets properties set before the definition win over attributes, and mounts only once', () => {
+    const el = document.createElement('qr-city-win') as HTMLElement & { data?: string; intro?: string; quality?: string; cityStyle?: string };
+    el.setAttribute('data', 'from-attribute');
+    el.setAttribute('intro', 'door');
+    el.data = 'from-property';
+    el.intro = 'none';
+    el.quality = 'low';
+    el.cityStyle = 'costera';
+    document.body.append(el);
+    defineQrCity('qr-city-win');
+    expect(controllers).toHaveLength(1);
+    expect(lastOptions).toMatchObject({ data: 'from-property', intro: 'none', quality: 'low', style: 'costera' });
+  });
+
   it('maps the door-intro attributes and re-emits stage changes', () => {
     document.body.append(make({ data: 'a', intro: 'door', 'pause-at-threshold': '', 'door-label': 'Abrir la puerta' }));
     expect(lastOptions).toMatchObject({ intro: 'door', pauseAtThreshold: true, doorLabel: 'Abrir la puerta' });

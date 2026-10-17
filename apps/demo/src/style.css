@@ -76,6 +76,10 @@ legend { padding: 0; margin-bottom: 8px; font: 400 11px/1 var(--mono); letter-sp
 .dots i { width: 14px; height: 14px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, 0.12); }
 .zoom { display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; }
 .zoom button { text-align: center; }
+.lab-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.scan { margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); font: 400 12px/1.5 var(--mono); }
+.scan.ok { border-color: var(--ink); }
+.scan.fail { border-color: var(--accent); color: var(--accent); }
 .tip { margin: 0; font: 400 12px/1.5 var(--mono); color: var(--muted); }
 
 /* Over the stage: door hint, skip button and the form */

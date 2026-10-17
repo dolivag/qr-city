@@ -102,6 +102,17 @@ You can also load it lazily: `await import('@qr-city/core/ultra')` before creati
 
 `style` accepts a `QrCityStyle` object (colours as `#rrggbb`). Keep the scan-ability invariant: a dark `palette.roof` and light ground tones. See `styles.moderna` as a template.
 
+`checkStyle(style)` tells you whether a style keeps that invariant:
+
+```ts
+import { checkStyle } from '@qr-city/core';
+
+const { ok, contrast, warnings } = checkStyle(myStyle);
+// ok: false, contrast: 2.6, warnings: ['Low contrast between the rooftops and the ground (2.6:1; …)']
+```
+
+It measures the contrast between `palette.roof` and the darkest of `walk`, `ground` and `road` (at least 4.5:1 is advised) and checks the quiet zone. The built-in styles always pass. `createQrCity` runs it once for a custom style object and logs the warnings with `console.warn`; for styles you change at runtime, call it yourself.
+
 ## License
 
 MIT. "QR Code" is a registered trademark of DENSO WAVE INCORPORATED; this library is not affiliated with DENSO WAVE.

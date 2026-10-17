@@ -10,6 +10,7 @@ import type { FlatQr } from './fallback';
 import { qrToPng, qrToSvg } from './qr/image';
 import { createMatrix } from './qr/matrix';
 import { resolveQuality } from './runtime/quality';
+import { checkStyle } from './styles/check';
 import { warnIfUltraMissing } from './scene/ultraKit';
 import type { QualityProfile } from './runtime/quality';
 import { col } from './scene/color';
@@ -51,6 +52,8 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   let style: QrCityStyle = resolveStyle(opts.style);
   let profile: QualityProfile = resolveQuality(opts.quality);
   warnIfUltraMissing(profile.level);
+  // A custom style can break the scan-ability invariant; built-in ones cannot. Say so once, at creation.
+  if (typeof opts.style === 'object') for (const w of checkStyle(style).warnings) console.warn(`[qr-city] style "${style.id}": ${w}`);
   createMatrix(opts.data, opts.errorCorrection); // fail fast if the data cannot be encoded
   const intro = opts.intro; // fixed at creation
 

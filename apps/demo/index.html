@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#EFEBE2" />
     <title>Ciudad QR</title>
+    <meta name="description" content="Una ciudad 3D cuyos tejados forman un código QR escaneable. Librería para JavaScript, React, Vue y Angular, con un laboratorio para probar todas las opciones." />
+    <link rel="canonical" href="https://qr-city.danioliva.dev/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content="Ciudad QR" />
+    <meta property="og:title" content="Ciudad QR" />
+    <meta property="og:description" content="Una ciudad cuyos tejados forman un código QR que se puede escanear." />
+    <meta property="og:url" content="https://qr-city.danioliva.dev/" />
+    <meta property="og:image" content="https://qr-city.danioliva.dev/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Una ciudad isométrica de rascacielos cuyos tejados forman un código QR, junto al título Ciudad QR." />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
@@ -52,6 +65,8 @@
       <div class="panel">
         <button type="button" id="toggle" disabled>Revelar QR</button>
         <button type="button" id="again" disabled>Otra ciudad</button>
+        <button type="button" id="check" disabled>Comprobar que se lee</button>
+        <p class="scan" id="scan" role="status" hidden></p>
         <button type="button" id="png" disabled>Descargar ciudad (PNG)</button>
         <button type="button" id="qr-svg" disabled>QR para imprimir (SVG)</button>
         <button type="button" id="qr-png" disabled>QR para imprimir (PNG)</button>
@@ -65,8 +80,11 @@
       </div>
 
       <section class="lab" aria-labelledby="lab-title">
-        <h2 id="lab-title">Laboratorio</h2>
-        <p class="lede">Todo lo que se puede configurar en los paquetes, en vivo. A la derecha, el código que reproduce lo que ves.</p>
+        <div class="lab-head">
+          <h2 id="lab-title">Laboratorio</h2>
+          <button type="button" id="share">Copiar enlace</button>
+        </div>
+        <p class="lede">Todo lo que se puede configurar en los paquetes, en vivo. A la derecha, el código que reproduce lo que ves. El enlace guarda tu configuración.</p>
         <div class="lab-grid">
           <div class="lab-controls" id="lab-controls"></div>
           <div class="code-box" id="code-box"></div>
