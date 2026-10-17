@@ -97,6 +97,38 @@ legend { padding: 0; margin-bottom: 8px; font: 400 11px/1 var(--mono); letter-sp
 .err { min-height: 1.3em; font: 400 12px/1.3 var(--mono); color: var(--accent); }
 #msg { margin: 0; min-height: 1.5em; font: 400 12px/1.5 var(--mono); color: var(--accent); }
 
+/* The lab: options on one side, code on the other */
+.lab { display: grid; gap: 14px; padding-top: 8px; }
+.lab-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+.group { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+.group + .group { margin-top: 8px; }
+.group summary { cursor: pointer; padding: 12px 14px; font: 400 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.group[open] summary { border-bottom: 1px solid var(--line); }
+.group summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.fields { display: grid; gap: 12px; padding: 14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.fields .opts, .fields .warn, .fields > button { grid-column: 1 / -1; }
+.field { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.field.check { grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
+.field.check label { font: 400 13px/1.3 var(--body); letter-spacing: 0; text-transform: none; color: var(--ink); }
+.field.check input { width: 18px; height: 18px; padding: 0; accent-color: var(--accent); }
+select {
+  font: 400 13px/1.4 var(--mono); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; width: 100%;
+}
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type='range'] { padding: 0; accent-color: var(--accent); }
+input[type='color'] { padding: 2px; height: 38px; cursor: pointer; background: var(--bg); }
+output { font: 400 11px/1 var(--mono); color: var(--ink); }
+.warn { margin: 0; min-height: 1.4em; font: 400 12px/1.4 var(--mono); color: var(--accent); }
+.code-box { position: relative; display: grid; gap: 8px; min-width: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button { padding: 9px 11px; }
+.tabs button[aria-selected='true'] { background: var(--ink); color: var(--bg); }
+pre {
+  margin: 0; padding: 14px; overflow: auto; max-height: 560px; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); font: 400 12px/1.6 var(--mono); tab-size: 2;
+}
+.copy { justify-self: start; }
 .foot { display: flex; gap: 20px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--line); font: 400 12px/1 var(--mono); color: var(--muted); }
 .foot a { color: inherit; text-underline-offset: 3px; }
 .foot a:hover { color: var(--accent); }
@@ -105,6 +137,9 @@ legend { padding: 0; margin-bottom: 8px; font: 400 11px/1 var(--mono); letter-sp
   main { grid-template-columns: minmax(0, 1fr) 300px; gap: 24px 32px; padding-top: 48px; }
   .head, .foot { grid-column: 1 / -1; }
   .panel { position: sticky; top: 24px; }
+  .lab { grid-column: 1 / -1; }
+  .lab-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .code-box { position: sticky; top: 24px; }
 }
 @media (max-width: 480px) {
   .gate { padding: 10px; }

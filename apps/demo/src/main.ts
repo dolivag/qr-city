@@ -4,45 +4,14 @@ import '@fontsource/young-serif/latin-ext-400.css';
 import '@fontsource-variable/hanken-grotesk/wght.css';
 import '@fontsource/fragment-mono/latin-400.css';
 import '@fontsource/fragment-mono/latin-ext-400.css';
-import { styles } from '@qr-city/core';
-import type { QrCityStyle } from '@qr-city/core';
+// Extra modelled parts for `quality: 'ultra'`.
+import '@qr-city/core/ultra';
 import { defineQrCity } from '@qr-city/element';
 import type { QrCityElement, QrCityIntroStage } from '@qr-city/element';
-import { paper } from './paper-style';
+import { createLab, presets } from './lab';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const city = $<QrCityElement>('city');
-// Set before registering the element so it builds once, with the right style.
-city.cityStyle = paper;
-defineQrCity();
-
-const choices: QrCityStyle[] = [paper, ...Object.values(styles)];
-let chosen: QrCityStyle = paper;
-
-const opts = $('opts');
-const styleDesc = $('style-desc');
-styleDesc.textContent = chosen.description;
-choices.forEach((s, i) => {
-  const label = document.createElement('label');
-  label.className = 'opt';
-  const input = document.createElement('input');
-  input.type = 'radio';
-  input.name = 'style';
-  input.value = s.id;
-  input.checked = i === 0;
-  input.addEventListener('change', () => { chosen = s; styleDesc.textContent = s.description; });
-  const dots = document.createElement('span');
-  dots.className = 'dots';
-  for (const c of [...s.palette.towers.slice(0, 3), s.palette.roof]) {
-    const d = document.createElement('i');
-    d.style.background = c;
-    dots.append(d);
-  }
-  const name = document.createElement('b');
-  name.textContent = s.name;
-  label.append(input, dots, name);
-  opts.append(label);
-});
 
 const hint = $('hint');
 const skip = $('skip');
@@ -61,6 +30,7 @@ const zoomOut = $<HTMLButtonElement>('zoom-out');
 const zoomReset = $<HTMLButtonElement>('zoom-reset');
 const zoomValue = $('zoom-value');
 const msg = $('msg');
+const styleDesc = $('style-desc');
 
 let stage: QrCityIntroStage = 'door';
 let overCity = false; // the form is open on top of an already built city
@@ -80,11 +50,54 @@ function sync() {
   if (!gate.hidden) setTimeout(() => input.focus({ preventScroll: true }), 350);
 }
 
+// The lab: every option the packages expose, with the code that reproduces it.
+const lab = createLab(city, $('lab-controls'), {
+  onRestart() {
+    // The intro is fixed at creation, so the element started over.
+    overCity = false;
+    err.textContent = '';
+    msg.textContent = '';
+    stage = city.stage;
+    sync();
+  },
+  onStyle() {
+    styleDesc.textContent = lab.preset.description;
+    for (const r of document.querySelectorAll<HTMLInputElement>('input[name="style"]')) r.checked = r.value === lab.preset.id;
+  },
+});
+// Set before registering the element so it builds once, with the right style.
+lab.selectPreset(presets[0].id);
+defineQrCity();
+
+const opts = $('opts');
+presets.forEach((s, i) => {
+  const label = document.createElement('label');
+  label.className = 'opt';
+  const radio = document.createElement('input');
+  radio.type = 'radio';
+  radio.name = 'style';
+  radio.value = s.id;
+  radio.checked = i === 0;
+  radio.addEventListener('change', () => lab.selectPreset(s.id));
+  const dots = document.createElement('span');
+  dots.className = 'dots';
+  for (const c of [...s.palette.towers.slice(0, 3), s.palette.roof]) {
+    const d = document.createElement('i');
+    d.style.background = c;
+    dots.append(d);
+  }
+  const name = document.createElement('b');
+  name.textContent = s.name;
+  label.append(radio, dots, name);
+  opts.append(label);
+});
+styleDesc.textContent = lab.preset.description;
+
 city.addEventListener('qr-city-introstage', (e) => {
   stage = (e as CustomEvent<{ stage: QrCityIntroStage }>).detail.stage;
   sync();
 });
-city.addEventListener('qr-city-viewchange', sync);
+city.addEventListener('qr-city-viewchange', () => { lab.set({ view: city.view }); sync(); });
 city.addEventListener('qr-city-zoomchange', sync);
 city.addEventListener('qr-city-fallback', () => {
   msg.textContent = 'Tu navegador no admite WebGL, así que te mostramos el código QR sin la ciudad. Sigue siendo escaneable.';
@@ -101,8 +114,7 @@ form.addEventListener('submit', (e) => {
   if (value.length > 300) { err.textContent = 'Es demasiado largo. Usa menos de 300 caracteres.'; return; }
   err.textContent = '';
   msg.textContent = '';
-  city.cityStyle = chosen;
-  city.setAttribute('data', value);
+  lab.set({ data: value });
   if (stage === 'threshold') {
     city.continueIntro();
   } else {
