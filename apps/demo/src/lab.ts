@@ -25,7 +25,7 @@ export interface LabState {
   plaza: boolean;
   plazaSize: number;
   /** `custom` is a picture uploaded here: it lives in this page only, never in the link. */
-  plazaImage: 'logo' | 'none' | 'custom';
+  plazaImage: 'none' | 'custom';
 }
 
 /** What the library does when an option is left out: the snippets only show what differs from this. */
@@ -47,7 +47,7 @@ const LIB: LabState = {
   doorLabel: 'Open the door',
   plaza: false,
   plazaSize: 0.2,
-  plazaImage: 'logo',
+  plazaImage: 'none',
 };
 
 const BACKGROUNDS: Record<LabState['background'], string | undefined> = {
@@ -67,7 +67,6 @@ const ENUMS: Partial<Record<keyof LabState, readonly string[]>> = {
   quality: ['auto', 'low', 'high', 'ultra'],
   fallback: ['qr', 'none'],
   background: ['style', 'transparent', 'white', 'black'],
-  plazaImage: ['logo', 'none'],
 };
 const BOOLEANS = ['pauseAtThreshold', 'interactive', 'zoomable', 'plaza'] as const;
 const STRINGS: Partial<Record<keyof LabState, number>> = { data: 300, label: 120, doorLabel: 120 };
@@ -217,10 +216,9 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
   Object.assign(state, readState(params));
   /** A picture uploaded for the plaza (a data URL): kept in this page only. */
   let customImage: string | null = null;
-  const PLAZA_LOGO = '/logo.svg';
   const plazaOption = () => {
     if (!state.plaza) return false;
-    const image = state.plazaImage === 'logo' ? PLAZA_LOGO : state.plazaImage === 'custom' ? customImage ?? undefined : undefined;
+    const image = state.plazaImage === 'custom' ? customImage ?? undefined : undefined;
     return { image, size: state.plazaSize };
   };
   /** The intro the element really has (the lab may show another while it waits for the link). */
@@ -477,7 +475,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       group(t('g.plaza'), false,
         check('plaza', t('f.plaza')),
         range('plazaSize', t('f.plazaSize'), 0.1, 0.25, 0.01),
-        select('plazaImage', t('f.plazaImage'), [['logo', t('o.plazaLogo')], ['none', t('o.plazaRose')], ['custom', t('o.plazaCustom')]]),
+        select('plazaImage', t('f.plazaImage'), [['none', t('o.plazaRose')], ['custom', t('o.plazaCustom')]]),
         upload,
         el('p', { class: 'tip', textContent: t('f.plazaTip') }),
       ),
@@ -574,7 +572,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     }
     const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
     // The plaza as each framework writes it: an object, or three attributes on the element.
-    const plazaImage = state.plazaImage === 'logo' ? PLAZA_LOGO : state.plazaImage === 'custom' ? t('c.yourLogo') : null;
+    const plazaImage = state.plazaImage === 'custom' ? t('c.yourLogo') : null;
     const plazaObj = state.plaza ? `{ ${plazaImage ? `image: '${plazaImage}', ` : ''}size: ${state.plazaSize} }` : null;
     const plazaAttrs = state.plaza ? ['plaza', ...(plazaImage ? [`plaza-image="${plazaImage}"`] : []), `plaza-size="${state.plazaSize}"`] : [];
     const ultra = state.quality === 'ultra' ? `import '@qr-city/core/ultra'; // ${t('c.ultra')}\n` : '';

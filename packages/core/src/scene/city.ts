@@ -279,7 +279,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       a.beginPath();
       a.arc(c, c, inner * 0.42, 0, Math.PI * 2);
       a.stroke();
-      a.fillStyle = P.towers[0];
+      a.fillStyle = accent;
       a.beginPath();
       for (let k = 0; k < 8; k++) {
         const ang = (k * Math.PI) / 4 - Math.PI / 2;
