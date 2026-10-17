@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/dolivag/qr-city/master/assets/logo/logo-mark.svg" alt="qr-city" width="120"></p>
+
 # @qr-city/element
 
 `<qr-city>` Web Component: a 3D city whose rooftops form a scannable QR code. Works in React, Vue, Angular, Svelte or plain HTML.
