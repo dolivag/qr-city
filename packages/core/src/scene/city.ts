@@ -25,6 +25,7 @@ import { ResourceTracker } from '../runtime/tracker';
 import { moderna } from '../styles/moderna';
 import type { QrCityStyle } from '../types';
 import { clamp01, pick, rand, smooth } from '../util/math';
+import { createBatch } from './batch';
 import { createCoast } from './coast';
 import { col } from './color';
 import type { Run, SceneCtx } from './ctx';
@@ -37,6 +38,8 @@ import { createVegetation } from './vegetation';
 /** three ≥ r155 dropped the legacy ×π light scaling; this keeps the look of the original r128 prototype. */
 const LIGHT_SCALE = Math.PI;
 const MAX_GROUND_TEXTURE = 4096;
+/** Floor counts a tower can have: close enough to any height, few enough to share geometry. */
+const FLOOR_STEPS = [2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 19, 22, 26, 30, 35, 41];
 /** Side of a building as a fraction of its module while the city is seen from the side. */
 const BUILDING_FOOTPRINT = 0.96;
 /** Side of a building as a fraction of its module in the top-down view (slightly over 1, so roofs overlap). */
@@ -488,7 +491,8 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
           : 1.3 + rand(c * 2, r) * 2.6;
         h = Math.max(isDoor ? 2.6 : 0.9, h * S.buildings.heightMul);
         skyline = Math.max(skyline, h);
-        const floors = Math.max(2, Math.round(h / 0.42));
+        // Floors from a fixed scale, so towers share geometry and draw in batches (windows vary a few %)
+        const floors = FLOOR_STEPS.reduce((best, f) => (Math.abs(f - h / 0.42) < Math.abs(best - h / 0.42) ? f : best));
         const body = new Mesh(towerGeo(floors), [roofMat, pick(towerMats, rand(c, r))]);
         body.scale.y = h;
         grp.add(body);
@@ -614,6 +618,9 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   }
   setFocus(0, 0, 1);
 
+  // ---- Repeated meshes (trees, lamps, cars, people, buildings…) drawn in instanced batches
+  const batch = createBatch(city);
+
   // ---- Animation
   let born = Number.NaN;
   const riseDuration = maxDelay + 0.9;
@@ -645,6 +652,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       for (const m of modules) m?.update(frame);
     }
     city.position.y = reduce || !bob ? 0 : Math.sin(now / 1600) * 0.12 * (1 - t);
+    batch.refresh();
   }
 
   // The picture arrives later: paint it over the pattern when it does.
@@ -663,6 +671,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
 
   function dispose() {
     alive = false;
+    batch.dispose();
     tracker.disposeTree(root);
     tracker.dispose();
     sun.shadow.map?.dispose();

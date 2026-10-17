@@ -22,7 +22,8 @@ export function roundedPrism(w: number, d: number, r: number, seg = 5): ExtrudeG
 
 /** Soft organic canopy: a sphere with gentle sinusoidal deformation. */
 export function blobGeo(seed: number, detail = 1): BufferGeometry {
-  const g = new SphereGeometry(1, Math.max(8, Math.round(22 * detail)), Math.max(6, Math.round(16 * detail)));
+  // Small on screen and softened by the deformation: a coarse sphere is enough (it is most of the triangles)
+  const g = new SphereGeometry(1, Math.max(8, Math.round(13 * detail)), Math.max(6, Math.round(9 * detail)));
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i);

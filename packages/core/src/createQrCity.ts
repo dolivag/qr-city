@@ -9,6 +9,7 @@ import { mountFlatQr } from './fallback';
 import type { FlatQr } from './fallback';
 import { qrToPng, qrToSvg } from './qr/image';
 import { createMatrix } from './qr/matrix';
+import { createGovernor } from './runtime/adaptive';
 import { resolveQuality } from './runtime/quality';
 import { checkStyle } from './styles/check';
 import { warnIfUltraMissing } from './scene/ultraKit';
@@ -316,9 +317,27 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     height = el.clientHeight;
     if (!width || !height) return;
     const dpr = typeof devicePixelRatio === 'number' ? devicePixelRatio : 1;
-    renderer.setPixelRatio(Math.min(dpr, opts.maxPixelRatio ?? profile.pixelRatioCap));
+    renderer.setPixelRatio(Math.min(dpr, opts.maxPixelRatio ?? profile.pixelRatioCap, pixelCap));
     renderer.setSize(width, height, false);
     if (!playing) tick(performance.now(), 0, false);
+  }
+
+  // ---- Adaptive quality (`quality: 'auto'`): when the device cannot keep up, fewer pixels first, then less detail
+  const governor = createGovernor();
+  let pixelCap = Infinity;
+  /** `auto` already stepped down to low detail: keep it there across updates. */
+  let autoLow = false;
+  function stepDown() {
+    const pr = renderer.getPixelRatio();
+    if (pr > 1.01) {
+      pixelCap = pr > 1.5 ? 1.5 : 1;
+      resize();
+    } else if (profile.level !== 'low') {
+      profile = resolveQuality('low');
+      autoLow = true;
+      buildCity(false);
+      resize(); // the low profile also caps the pixel ratio
+    }
   }
 
   /** Updates and draws the current stage. `advance` is false for redraws that must not move time forward. */
@@ -380,9 +399,12 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   function frame(now: number) {
     if (disposed || !playing) return;
     raf = requestAnimationFrame(frame);
-    const dt = Math.min(0.05, (now - (last || now)) / 1000);
+    const gap = now - (last || now);
+    const dt = Math.min(0.05, gap / 1000);
     last = now;
     tick(now, dt, true);
+    const measuring = opts.quality === 'auto' && stage === 'done' && revealed && !reduced() && document.visibilityState === 'visible';
+    if (measuring && governor.sample(gap)) stepDown();
   }
 
   function startLoop() {
@@ -580,7 +602,13 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     const resolved = resolveOptions(merged);
     if (resolved.intro !== intro) throw new RangeError('[qr-city] `intro` is fixed at creation and cannot be changed with update().');
     const nextStyle = resolveStyle(resolved.style);
-    const nextProfile = resolveQuality(resolved.quality);
+    if (resolved.quality !== opts.quality) {
+      // A quality picked by hand (or `auto` again) starts from scratch
+      autoLow = false;
+      pixelCap = Infinity;
+      governor.reset();
+    }
+    const nextProfile = resolved.quality === 'auto' && autoLow ? profile : resolveQuality(resolved.quality);
     const needsRebuild =
       resolved.data !== opts.data ||
       resolved.errorCorrection !== opts.errorCorrection ||
