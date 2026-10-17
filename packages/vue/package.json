@@ -1,6 +1,6 @@
 {
   "name": "@qr-city/vue",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vue 3 component for qr-city: a 3D city whose rooftops form a scannable QR code.",
   "keywords": ["qr", "qrcode", "vue", "vue3", "three", "3d", "isometric"],
   "license": "MIT",
@@ -22,6 +22,6 @@
     "lint": "eslint src",
     "test": "vitest run"
   },
-  "dependencies": { "@qr-city/core": "0.1.0" },
+  "dependencies": { "@qr-city/core": "0.2.0" },
   "peerDependencies": { "vue": ">=3.3", "three": ">=0.160.0 <1" }
 }

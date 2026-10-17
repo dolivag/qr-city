@@ -1,5 +1,15 @@
 # @qr-city/core
 
+## 0.2.0
+
+### Minor Changes
+
+- [#11](https://github.com/dolivag/qr-city/pull/11) [`7f1fd38`](https://github.com/dolivag/qr-city/commit/7f1fd38dced3161c4a17e04b259c2a61b4d93e0e) Thanks [@dolivag](https://github.com/dolivag)! - `intro: 'flyover'` now works: the camera sweeps over the finished city and settles into the isometric view (a click or `skipIntro()` skips it; reduced motion skips it too). Also, revealing the QR while zoomed in now zooms back out and re-centres, so the whole code is visible.
+
+### Patch Changes
+
+- [#14](https://github.com/dolivag/qr-city/pull/14) [`af6c91c`](https://github.com/dolivag/qr-city/commit/af6c91c1e933e9e3802d621c1ae45ebb2624bb31) Thanks [@dolivag](https://github.com/dolivag)! - Snowflakes are now soft round dots sized by the canvas height (about 3 px on a tall desktop canvas, much smaller on a phone) instead of fixed 6 px squares, so on small screens the snow no longer hides the city.
+
 ## 0.1.0
 
 ### Minor Changes
