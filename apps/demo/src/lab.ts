@@ -1,4 +1,4 @@
-import { styles } from '@qr-city/core';
+import { checkStyle, styles } from '@qr-city/core';
 import type { QrCityStyle, QrCityStyleId } from '@qr-city/core';
 import type { QrCityElement } from '@qr-city/element';
 import { paper } from './paper-style';
@@ -48,6 +48,86 @@ const BACKGROUNDS: Record<LabState['background'], string | undefined> = {
   black: '#14110f',
 };
 
+// ---- Shareable links: the whole lab state lives in the query string -------------------------------------
+const ENUMS: Partial<Record<keyof LabState, readonly string[]>> = {
+  intro: ['none', 'door', 'flyover'],
+  animate: ['auto', 'true', 'false'],
+  view: ['city', 'qr'],
+  wheelZoom: ['ctrl', 'always', 'off'],
+  errorCorrection: ['L', 'M', 'Q', 'H'],
+  quality: ['auto', 'low', 'high', 'ultra'],
+  fallback: ['qr', 'none'],
+  background: ['style', 'transparent', 'white', 'black'],
+};
+const BOOLEANS = ['pauseAtThreshold', 'interactive', 'zoomable'] as const;
+const STRINGS: Partial<Record<keyof LabState, number>> = { data: 300, label: 120, doorLabel: 120 };
+
+/** Reads and validates the options of a link: anything unexpected is ignored. */
+function readState(params: URLSearchParams): Partial<LabState> {
+  const out: Record<string, unknown> = {};
+  for (const [k, list] of Object.entries(ENUMS)) {
+    const v = params.get(k);
+    if (v && list.includes(v)) out[k] = v;
+  }
+  for (const k of BOOLEANS) {
+    const v = params.get(k);
+    if (v === 'true' || v === 'false') out[k] = v === 'true';
+  }
+  const zoom = Number(params.get('maxZoom'));
+  if (params.has('maxZoom') && zoom >= 2 && zoom <= 16) out.maxZoom = Math.round(zoom);
+  for (const [k, max] of Object.entries(STRINGS)) {
+    const v = params.get(k);
+    if (v) out[k] = v.slice(0, max);
+  }
+  return out as Partial<LabState>;
+}
+
+const isHex = (v: unknown) => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
+const hexList = (max: number) => (v: unknown) => Array.isArray(v) && v.length > 0 && v.length <= max && v.every(isHex);
+const inRange = (lo: number, hi: number) => (v: unknown) => typeof v === 'number' && v >= lo && v <= hi;
+const oneOf = (list: string[]) => (v: unknown) => typeof v === 'string' && list.includes(v);
+/** The style fields the lab edits, each with the check a value from a link must pass. */
+const TWEAKS: Record<string, Record<string, (v: unknown) => boolean>> = {
+  palette: { sky: isHex, walk: isHex, ground: isHex, road: isHex, roof: isHex, towers: hexList(8) },
+  buildings: { windowColor: isHex, heightMul: inRange(0.3, 1.5), houseBias: inRange(0, 1), skyBias: inRange(0, 1) },
+  vegetation: { kind: oneOf(['round', 'palm', 'pine', 'neon']), colors: hexList(6) },
+  traffic: { carColors: hexList(8) },
+  flyers: { kind: oneOf(['birds', 'gulls', 'drones', 'snow']), color: isHex },
+};
+
+const toBase64Url = (s: string) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const fromBase64Url = (s: string) => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
+
+/** What differs from the preset, in the editable fields only, as a compact string. */
+function encodeTweaks(preset: QrCityStyle, work: QrCityStyle): string {
+  const diff: Record<string, Record<string, unknown>> = {};
+  const a = preset as unknown as Record<string, Record<string, unknown>>;
+  const b = work as unknown as Record<string, Record<string, unknown>>;
+  for (const [g, keys] of Object.entries(TWEAKS)) {
+    for (const k of Object.keys(keys)) {
+      if (JSON.stringify(a[g][k]) !== JSON.stringify(b[g][k])) (diff[g] ??= {})[k] = b[g][k];
+    }
+  }
+  return Object.keys(diff).length ? toBase64Url(JSON.stringify(diff)) : '';
+}
+
+/** Applies the tweaks of a link onto a style, ignoring anything that does not validate. */
+function applyTweaks(work: QrCityStyle, encoded: string | null) {
+  if (!encoded) return;
+  try {
+    const diff = JSON.parse(fromBase64Url(encoded)) as Record<string, Record<string, unknown>>;
+    const target = work as unknown as Record<string, Record<string, unknown>>;
+    for (const [g, keys] of Object.entries(TWEAKS)) {
+      for (const [k, ok] of Object.entries(keys)) {
+        const v = diff[g]?.[k];
+        if (v !== undefined && ok(v)) target[g][k] = v;
+      }
+    }
+  } catch {
+    // A mangled link: keep the preset as it is.
+  }
+}
+
 export const presets: QrCityStyle[] = [paper, ...Object.values(styles)];
 const baseOf = (s: QrCityStyle) => (s.id in styles ? s.id : 'moderna') as keyof typeof styles;
 
@@ -69,24 +149,6 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLEl
   return node;
 };
 
-/** WCAG relative luminance of a `#rrggbb` colour. */
-const luminance = (hex: string) => {
-  const [r, g, b] = [1, 3, 5].map((i) => {
-    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-
-/** Contrast between the rooftops and the lightest-to-darkest ground the QR sits on (1–21). */
-export function qrContrast(s: QrCityStyle): number {
-  const light = Math.min(...[s.palette.walk, s.palette.ground, s.palette.road].map(luminance));
-  return (light + 0.05) / (luminance(s.palette.roof) + 0.05);
-}
-
-/** Below this the code gets hard to scan. */
-const MIN_CONTRAST = 4.5;
-
 /** A JS literal with single quotes and short arrays on one line. */
 function lit(v: unknown, indent = 0): string {
   const pad = '  '.repeat(indent + 1);
@@ -104,6 +166,10 @@ export interface Lab {
   /** Updates options (state, controls and element) from outside, e.g. the entrance form. */
   set(partial: Partial<LabState>): void;
   selectPreset(id: string): void;
+  /** Applies the state (possibly from a link) and the style to the element: call before it is defined. */
+  start(): void;
+  /** The link that reproduces the current configuration. */
+  shareUrl(): string;
   /** Starts the flyover (after the demo has asked what to build). */
   startFlyover(): void;
   /** Gives up on a pending flyover and goes back to the intro the element really has. */
@@ -131,10 +197,26 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     label: 'Ciudad 3D cuyos tejados forman un código QR',
     doorLabel: 'Abrir la puerta',
   };
+  const demoDefaults = { ...state };
+  const params = new URLSearchParams(location.search);
+  Object.assign(state, readState(params));
   /** The intro the element really has (the lab may show another while it waits for the link). */
   let committed = state.intro;
-  let preset = presets[0];
+  let preset = presets.find((p) => p.id === params.get('style')) ?? presets[0];
   let work: QrCityStyle = structuredClone(preset);
+  applyTweaks(work, params.get('tweaks'));
+
+  /** The link that reproduces what is on screen. */
+  function shareUrl(): string {
+    const q = new URLSearchParams();
+    for (const k of Object.keys(state) as (keyof LabState)[]) if (state[k] !== demoDefaults[k]) q.set(k, String(state[k]));
+    if (preset.id !== presets[0].id) q.set('style', preset.id);
+    const tweaks = encodeTweaks(preset, work);
+    if (tweaks) q.set('tweaks', tweaks);
+    const query = q.toString();
+    return `${location.origin}${location.pathname}${query ? `?${query}` : ''}`;
+  }
+  const syncUrl = () => debounce('url', () => history.replaceState(null, '', shareUrl()), 300);
   const syncers: (() => void)[] = [];
   const timers = new Map<string, number>();
   const debounce = (key: string, fn: () => void, ms = 220) => {
@@ -172,6 +254,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       case 'doorLabel': city.doorLabel = state.doorLabel; break;
     }
     renderCode();
+    syncUrl();
   }
 
   function set(partial: Partial<LabState>) {
@@ -192,12 +275,13 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     city.cityStyle = effectiveStyle();
     hooks.onStyle();
     renderCode();
-    const ratio = qrContrast(work);
-    const text = ratio < MIN_CONTRAST
-      ? `Contraste bajo entre los tejados y el suelo (${ratio.toFixed(1).replace('.', ',')}:1). Con menos de ${String(MIN_CONTRAST).replace('.', ',')}:1 el QR puede no escanearse: usa tejados oscuros sobre un suelo y unas calles claros.`
-      : '';
+    const check = checkStyle(work);
+    const text = check.ok
+      ? ''
+      : `Contraste bajo entre los tejados y el suelo (${check.contrast.toFixed(1).replace('.', ',')}:1). Con menos de 4,5:1 el QR puede no escanearse: usa tejados oscuros sobre un suelo y unas calles claros.`;
     warn.textContent = text;
     hooks.onWarn(text);
+    syncUrl();
   }
 
   function selectPreset(id: string) {
@@ -476,10 +560,34 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
   for (const s of syncers) s();
   renderCode();
 
+  /** Pushes the whole state (which may come from a link) to the element, before it is defined. */
+  function pushAll() {
+    city.data = state.data;
+    city.pauseAtThreshold = state.intro === 'door' ? state.pauseAtThreshold : false;
+    city.intro = state.intro;
+    city.animated = state.animate === 'auto' ? 'auto' : state.animate === 'true';
+    city.view = state.view;
+    city.interactive = state.interactive;
+    city.zoomable = state.zoomable;
+    city.maxZoom = state.maxZoom;
+    city.wheelZoom = state.wheelZoom;
+    city.errorCorrection = state.errorCorrection;
+    city.quality = state.quality;
+    city.fallback = state.fallback;
+    city.background = BACKGROUNDS[state.background];
+    city.label = state.label;
+    city.doorLabel = state.doorLabel;
+  }
+
   return {
     state,
     set,
     selectPreset,
+    start() {
+      pushAll();
+      applyStyle();
+    },
+    shareUrl,
     startFlyover() {
       committed = 'flyover';
       city.pauseAtThreshold = false;

@@ -20,6 +20,13 @@ const ATTRIBUTES = [
   'animate', 'interactive', 'background', 'label', 'pause-at-threshold', 'door-label', 'zoomable', 'max-zoom', 'wheel-zoom', 'fallback',
 ] as const;
 
+/** Element property → option name (they differ for `cityStyle` and `animated`). */
+const PROPERTY_OPTIONS: Record<string, string> = {
+  data: 'data', cityStyle: 'style', intro: 'intro', view: 'view', errorCorrection: 'errorCorrection', quality: 'quality',
+  animated: 'animate', interactive: 'interactive', background: 'background', label: 'label', pauseAtThreshold: 'pauseAtThreshold',
+  doorLabel: 'doorLabel', zoomable: 'zoomable', maxZoom: 'maxZoom', wheelZoom: 'wheelZoom', fallback: 'fallback',
+};
+
 const TEMPLATE_CSS = `
   :host { display: block; position: relative; aspect-ratio: 1 / 1; contain: layout paint; }
   :host([hidden]) { display: none; }
@@ -52,12 +59,18 @@ export class QrCityElement extends Base {
   #controller: QrCityController | null = null;
   #io: IntersectionObserver | null = null;
   #opts: Partial<QrCityOptions> = {};
+  /** Options whose property was set before the upgrade: they win over the attributes until connected. */
+  #early = new Set<string>();
   #mountedIntro: QrCityIntro | undefined;
   #userPaused = false;
   #visible = true;
 
   constructor() {
     super();
+    // On an upgrade the constructor runs before the attributes are reported: take the early properties now.
+    const early = this.#takeEarlyProperties();
+    Object.assign(this.#opts, early);
+    this.#early = new Set(Object.keys(early));
     if (typeof this.attachShadow !== 'function') return;
     const root = this.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
@@ -157,9 +170,6 @@ export class QrCityElement extends Base {
 
   // ---- Lifecycle -------------------------------------------------------
   connectedCallback(): void {
-    for (const p of ['data', 'cityStyle', 'intro', 'view', 'errorCorrection', 'quality', 'animated', 'interactive', 'background', 'label', 'pauseAtThreshold', 'doorLabel', 'zoomable', 'maxZoom', 'wheelZoom', 'fallback']) {
-      this.#upgrade(p);
-    }
     for (const name of ATTRIBUTES) this.#readAttribute(name, this.getAttribute(name));
     if (typeof IntersectionObserver !== 'undefined') {
       this.#io = new IntersectionObserver((entries) => {
@@ -169,6 +179,7 @@ export class QrCityElement extends Base {
       this.#io.observe(this);
     }
     this.#mount();
+    this.#early.clear();
   }
 
   disconnectedCallback(): void {
@@ -183,18 +194,26 @@ export class QrCityElement extends Base {
   }
 
   // ---- Internals -------------------------------------------------------
-  /** Re-applies an instance property set before the element was upgraded. */
-  #upgrade(prop: string): void {
-    if (Object.prototype.hasOwnProperty.call(this, prop)) {
-      const value = (this as unknown as Record<string, unknown>)[prop];
-      delete (this as unknown as Record<string, unknown>)[prop];
-      (this as unknown as Record<string, unknown>)[prop] = value;
+  /**
+   * Instance properties set before the element was upgraded shadow the accessors on the prototype:
+   * remove them and return their values as options.
+   */
+  #takeEarlyProperties(): Partial<QrCityOptions> {
+    const found: Record<string, unknown> = {};
+    const self = this as unknown as Record<string, unknown>;
+    for (const [prop, option] of Object.entries(PROPERTY_OPTIONS)) {
+      if (Object.prototype.hasOwnProperty.call(this, prop)) {
+        found[option] = self[prop];
+        delete self[prop];
+      }
     }
+    return found as Partial<QrCityOptions>;
   }
 
   #readAttribute(name: string, value: string | null): void {
     const v = value ?? undefined;
     const o = this.#opts as Record<string, unknown>;
+    const kept = Object.fromEntries([...this.#early].map((k) => [k, o[k]]));
     switch (name) {
       case 'data': o.data = v; break;
       case 'style-name': if (v !== undefined || typeof o.style === 'string') o.style = v; break;
@@ -213,6 +232,7 @@ export class QrCityElement extends Base {
       case 'wheel-zoom': o.wheelZoom = v; break;
       case 'fallback': o.fallback = v; break;
     }
+    Object.assign(o, kept); // properties set before the upgrade win over attributes (as in Lit)
   }
 
   #set(patch: Partial<QrCityOptions>): void {
