@@ -17,7 +17,9 @@ import {
 } from 'three';
 import type { BufferGeometry, MeshBasicMaterialParameters, MeshLambertMaterialParameters ,
   Color} from 'three';
+import { centerSquare } from '../qr/matrix';
 import type { QrMatrix } from '../qr/matrix';
+import type { ResolvedPlaza } from '../options';
 import type { QualityProfile } from '../runtime/quality';
 import { ResourceTracker } from '../runtime/tracker';
 import { moderna } from '../styles/moderna';
@@ -62,6 +64,8 @@ export interface DoorInfo {
 export interface CityOptions {
   /** Buildings rise from the ground. When `false` the city is complete from the first frame. */
   rise?: boolean;
+  /** A plaza in the middle of the city, with a picture painted on its paving. */
+  plaza?: ResolvedPlaza | null;
 }
 
 export interface City {
@@ -123,13 +127,18 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   const R = { road: half + 2.1, inner: half + 0.75, outer: half + 3.55, tree: half + 4.25 };
   const toW = (i: number) => i - half + 0.5;
 
+  // ---- Plaza: a centered square of modules with no buildings and no streets across it
+  const plaza = options.plaza ? centerSquare(n, options.plaza.size) : null;
+  const inPlaza = (r: number, c: number) =>
+    !!plaza && r >= plaza.first && r < plaza.first + plaza.side && c >= plaza.first && c < plaza.first + plaza.side;
+
   // ---- Streets: runs of ≥4 light modules; the ones touching the border connect to the ring road
   const runs: Run[] = [];
   const scan = (axis: 'x' | 'z') => {
     for (let k = 0; k < n; k++) {
       let start = -1;
       for (let i = 0; i <= n; i++) {
-        const light = i < n && !(axis === 'x' ? qr.isDark(k, i) : qr.isDark(i, k));
+        const light = i < n && !(axis === 'x' ? qr.isDark(k, i) || inPlaza(k, i) : qr.isDark(i, k) || inPlaza(i, k));
         if (light && start < 0) start = i;
         if (!light && start >= 0) {
           if (i - start >= 4) {
@@ -213,7 +222,94 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     g.stroke();
   }
   g.setLineDash([]);
+
+  /**
+   * A camera must read the plaza without doubt, so the picture has no mid tones: each pixel becomes
+   * either dark (as a roof) or light (as the paving), keeping its hue. Mid tones would bend the
+   * scanner's local threshold and spoil the modules around the plaza.
+   */
+  const DARK_MAX = 60;
+  const LIGHT_MIN = 205;
+  const rgbOf = (hex: string): [number, number, number] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+  const luma = (r: number, gg: number, b: number) => 0.2126 * r + 0.7152 * gg + 0.0722 * b;
+  const paving = rgbOf(P.walk);
+  const pavingLuma = Math.max(luma(...paving), LIGHT_MIN + 1);
+  const toTwoTones = (d: Uint8ClampedArray, i: number) => {
+    const y = luma(d[i], d[i + 1], d[i + 2]);
+    if (y < 128) {
+      const k = y > DARK_MAX ? DARK_MAX / y : 1;
+      for (let j = 0; j < 3; j++) d[i + j] *= k;
+    } else if (y < LIGHT_MIN) {
+      const k = Math.min(1, (LIGHT_MIN - y) / (pavingLuma - y));
+      for (let j = 0; j < 3; j++) d[i + j] += (paving[j] - d[i + j]) * k;
+    }
+  };
+  // The plaza's paving is part of the ground; the picture lives on its own layer, shown only in the
+  // top-down view: from the street the plaza looks plain, and the picture is a surprise from above.
+  const art = document.createElement('canvas');
+  if (plaza) {
+    g.fillStyle = P.walk;
+    const x0 = W(toW(plaza.first) - 0.5);
+    g.fillRect(x0, x0, plaza.side * px, plaza.side * px);
+  }
+  /** Draws the plaza's picture: the one given, fitted inside it, or an emblem in the style's colours. */
+  const paintPlaza = (picture: HTMLImageElement | null) => {
+    if (!plaza) return;
+    const side = Math.round(plaza.side * px);
+    art.width = art.height = side;
+    const a = art.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+    a.fillStyle = P.walk;
+    a.fillRect(0, 0, side, side);
+    const inner = side * 0.94;
+    let drawn = false;
+    if (picture) {
+      const fit = inner / Math.max(picture.naturalWidth, picture.naturalHeight);
+      const w = picture.naturalWidth * fit;
+      const h = picture.naturalHeight * fit;
+      a.imageSmoothingQuality = 'high';
+      a.drawImage(picture, (side - w) / 2, (side - h) / 2, w, h);
+      drawn = true;
+    }
+    if (!drawn) {
+      // A compass rose: a ring and a four-pointed star.
+      const c = side / 2;
+      const accent = P.towers[P.towers.length - 1];
+      a.strokeStyle = accent;
+      a.lineWidth = side * 0.05;
+      a.beginPath();
+      a.arc(c, c, inner * 0.42, 0, Math.PI * 2);
+      a.stroke();
+      a.fillStyle = accent;
+      a.beginPath();
+      for (let k = 0; k < 8; k++) {
+        const ang = (k * Math.PI) / 4 - Math.PI / 2;
+        const rr = k % 2 === 0 ? inner * 0.4 : inner * 0.1;
+        a.lineTo(c + Math.cos(ang) * rr, c + Math.sin(ang) * rr);
+      }
+      a.closePath();
+      a.fill();
+    }
+    try {
+      const img = a.getImageData(0, 0, side, side);
+      for (let i = 0; i < img.data.length; i += 4) toTwoTones(img.data, i);
+      a.putImageData(img, 0, 0);
+    } catch {
+      // A picture from another origin without CORS cannot be read: leave the paving bare.
+      a.fillStyle = P.walk;
+      a.fillRect(0, 0, side, side);
+    }
+  };
+  paintPlaza(null);
   const groundTex = tracker.track(new CanvasTexture(cv));
+  let plazaLayer: Mesh<PlaneGeometry, MeshBasicMaterial> | null = null;
+  if (plaza) {
+    const tex = tracker.track(new CanvasTexture(art));
+    tex.anisotropy = profile.anisotropy;
+    plazaLayer = new Mesh(geo(new PlaneGeometry(plaza.side, plaza.side).rotateX(-Math.PI / 2)), basic(0xffffff, { map: tex, transparent: true, opacity: 0 }));
+    plazaLayer.position.y = 0.004; // centred: the plaza sits exactly in the middle of the code
+    plazaLayer.visible = false;
+    city.add(plazaLayer);
+  }
   groundTex.anisotropy = profile.anisotropy;
 
   const baseH = 1.4;
@@ -350,7 +446,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   let bestScore = 1e9;
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
-      if (!qr.isDark(r, c) || inFinder(r, c)) continue;
+      if (!qr.isDark(r, c) || inFinder(r, c) || inPlaza(r, c)) continue;
       for (const [dr, dc] of [[0, 1], [1, 0]]) {
         if (!isLight(r + dr, c + dc) || !isLight(r + 2 * dr, c + 2 * dc)) continue;
         const score = Math.hypot(toW(c), toW(r)) + rand(r, c) * 2;
@@ -363,7 +459,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   let maxDelay = 0;
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
-      if (!qr.isDark(r, c)) continue;
+      if (!qr.isDark(r, c) || inPlaza(r, c)) continue;
       const x = toW(c);
       const z = toW(r);
       const dist = Math.hypot(x, z) / (half * 1.41);
@@ -525,6 +621,12 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   function update({ now, dt, t, reduce, bob = true }: CityFrame) {
     if (Number.isNaN(born)) born = options.rise === false ? now - 1e9 : now;
     const el = (now - born) / 1000;
+    if (plazaLayer) {
+      // The picture fades in over the last part of the move to the top-down view
+      const o = smooth(0.55, 0.95, t);
+      plazaLayer.material.opacity = o;
+      plazaLayer.visible = o > 0;
+    }
     // In the top-down view the rooftops grow to fill their whole module: no hairline gaps between
     // neighbouring roofs, which is what scanners with sharp, high-resolution cameras trip over.
     const fill = 1 + (TOP_FOOTPRINT / BUILDING_FOOTPRINT - 1) * smooth(0.4, 1, t);
@@ -545,7 +647,22 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     city.position.y = reduce || !bob ? 0 : Math.sin(now / 1600) * 0.12 * (1 - t);
   }
 
+  // The picture arrives later: paint it over the pattern when it does.
+  let alive = true;
+  if (plaza && options.plaza?.image) {
+    const picture = new Image();
+    picture.crossOrigin = 'anonymous';
+    picture.decoding = 'async';
+    picture.onload = () => {
+      if (!alive) return;
+      paintPlaza(picture);
+      if (plazaLayer?.material.map) plazaLayer.material.map.needsUpdate = true;
+    };
+    picture.src = options.plaza.image;
+  }
+
   function dispose() {
+    alive = false;
     tracker.disposeTree(root);
     tracker.dispose();
     sun.shadow.map?.dispose();

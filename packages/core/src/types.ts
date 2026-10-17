@@ -24,6 +24,23 @@ export type QrCityQuality = 'auto' | 'high' | 'low' | 'ultra';
 /** QR error-correction level. */
 export type QrCityEcc = 'L' | 'M' | 'Q' | 'H';
 
+/**
+ * A plaza in the middle of the city with a picture (your logo) on its paving. The QR still scans:
+ * the plaza covers part of the code and the high error correction (`'H'`, forced while the plaza is
+ * on) rebuilds it.
+ */
+export interface QrCityPlaza {
+  /**
+   * Picture painted on the plaza, fitted inside it: a URL or a data URL. Other origins must allow
+   * CORS. Transparent parts show the paving. So that a camera reads the plaza without doubt, its
+   * colors are reduced to dark and light tones (hues are kept). Without an image: a compass rose in
+   * the style's colors.
+   */
+  image?: string;
+  /** Side of the plaza as a fraction of the code's side: 0.1–0.25. Default 0.2. */
+  size?: number;
+}
+
 /** Colors of the door scene and the small door in the city (CSS hex strings). */
 export interface QrCityDoorTheme {
   /** Backdrop, fog, floor and lobby walls. */
@@ -115,8 +132,10 @@ export interface QrCityOptions {
   pauseAtThreshold?: boolean;
   /** Initial view. Default `'city'`. */
   view?: QrCityView;
-  /** Default `'M'`. */
+  /** Default `'M'`. Always `'H'` while `plaza` is on. */
   errorCorrection?: QrCityEcc;
+  /** A plaza with your picture in the middle of the city. Default off. */
+  plaza?: boolean | QrCityPlaza;
   /** Default `'auto'`. Antialiasing is decided at creation and cannot change later. */
   quality?: QrCityQuality;
   /** Clicking / pressing Enter or Space on the canvas toggles the view. Default `true`. */
@@ -183,7 +202,7 @@ export interface QrCityController {
   resetZoom(opts?: { immediate?: boolean }): void;
   toggleView(): void;
   setStyle(style: QrCityStyleId | QrCityStyle): void;
-  /** Rebuilds the city only if `data`, `style`, `errorCorrection` or `quality` change. */
+  /** Rebuilds the city only if `data`, `style`, `errorCorrection`, `quality` or `plaza` change. */
   update(next: Partial<QrCityOptions>): void;
   /** Renders a frame and encodes it. `scale` multiplies the current canvas resolution. In fallback mode it returns the plain QR. */
   toPNG(opts?: { scale?: number }): Promise<Blob>;

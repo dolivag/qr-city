@@ -178,7 +178,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   /** Builds the city. `rise`: buildings grow from the ground (otherwise it is complete at once). */
   function buildCity(rise: boolean) {
     // Build first: if it throws, the current city stays untouched.
-    const next = createCity(style, createMatrix(opts.data, opts.errorCorrection), profile, { rise });
+    const next = createCity(style, createMatrix(opts.data, opts.errorCorrection), profile, { rise, plaza: opts.plaza });
     city?.dispose();
     city = next;
     cityScene.add(city.root);
@@ -584,6 +584,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     const needsRebuild =
       resolved.data !== opts.data ||
       resolved.errorCorrection !== opts.errorCorrection ||
+      JSON.stringify(resolved.plaza) !== JSON.stringify(opts.plaza) ||
       nextStyle !== style ||
       nextProfile !== profile;
     const viewRequested = 'view' in next && next.view !== undefined && resolved.view !== (target === 1 ? 'qr' : 'city');

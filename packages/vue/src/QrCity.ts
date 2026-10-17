@@ -4,6 +4,7 @@ import type {
   QrCityEcc,
   QrCityIntro,
   QrCityOptions,
+  QrCityPlaza,
   QrCityQuality,
   QrCityStyle,
   QrCityStyleId,
@@ -42,6 +43,8 @@ export const QrCity = defineComponent({
     background: { type: String, default: undefined },
     label: { type: String, default: undefined },
     doorLabel: { type: String, default: undefined },
+    /** A plaza with your picture in the middle of the city: `true` or `{ image, size }`. */
+    plaza: { type: [Boolean, Object] as PropType<boolean | QrCityPlaza>, default: undefined },
   },
   emits: ['reveal', 'intro-stage', 'view-change', 'zoom-change', 'fallback', 'error'],
   setup(props, { emit, expose }) {
@@ -92,7 +95,7 @@ export const QrCity = defineComponent({
       () => [
         props.data, props.cityStyle, props.errorCorrection, props.quality, props.interactive, props.animate,
         props.maxPixelRatio, props.zoomable, props.maxZoom, props.wheelZoom, props.fallback, props.background, props.label,
-        props.doorLabel, props.pauseAtThreshold, props.view,
+        props.doorLabel, props.pauseAtThreshold, props.view, JSON.stringify(props.plaza),
       ],
       () => {
         try { controller?.update(options() as QrCityOptions); } catch (error) { report(error); }

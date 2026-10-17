@@ -27,7 +27,7 @@ const DEFAULT_STYLE: CSSProperties = { width: '100%', aspectRatio: '1 / 1' };
 export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(props, ref) {
   const {
     data, cityStyle, intro, pauseAtThreshold, view, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, plaza,
     onReveal, onIntroStage, onViewChange, onZoomChange, onFallback, onError,
     style, className, ...rest
   } = props;
@@ -45,7 +45,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
 
   const options: Omit<QrCityOptions, keyof Callbacks> = {
     data, style: stableStyle, intro, pauseAtThreshold, view, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, plaza,
   };
   const latest = useRef(options);
   latest.current = options;
@@ -81,7 +81,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
   // Everything else is applied in place (the city is rebuilt only when it has to be).
   const key = JSON.stringify([
     data, styleKey, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, pauseAtThreshold, view,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, pauseAtThreshold, view, plaza,
   ]);
   useEffect(() => {
     try {

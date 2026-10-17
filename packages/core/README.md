@@ -28,7 +28,8 @@ const city = createQrCity(hostElement, {
 | `intro` | `'none'` | `'door'`: door → you step in → fly out over the city. `'flyover'`: the camera sweeps over the finished city and settles into the isometric view (stages `flying` → `done`; a click or `skipIntro()` skips it). Both are skipped with `prefers-reduced-motion`. Fixed at creation. |
 | `pauseAtThreshold` | `false` | With `intro: 'door'`: stops on the white screen after crossing the door until you call `continueIntro()` (a good place for a form). |
 | `view` | `'city'` | Initial view: `'city'` (isometric) or `'qr'` (top-down). |
-| `errorCorrection` | `'M'` | `'L' \| 'M' \| 'Q' \| 'H'`. |
+| `errorCorrection` | `'M'` | `'L' \| 'M' \| 'Q' \| 'H'`. Always `'H'` with `plaza`. |
+| `plaza` | off | `true` or `{ image?, size? }`: a plaza in the middle of the city with your picture (a URL or data URL; other origins need CORS) painted on it, seen only in the top-down view. `size` is the fraction of the code's side, 0.1–0.25 (default 0.2). The code still scans: error correction is forced to `'H'` and the picture is reduced to light and dark tones (hues kept). Without `image`, a compass rose in the style's colours. |
 | `quality` | `'auto'` | `'low'` disables shadows, lowers the pixel ratio, simplifies trees and cars and reduces their number. `'high'` adds fuller trees and rims/mirrors on cars. `'ultra'` adds denser traffic, 4K shadows and, if you `import '@qr-city/core/ultra'`, extra modelled parts (see below). `auto` picks `low` on small touch devices and `high` elsewhere. Antialiasing is fixed at creation. |
 | `interactive` | `true` | Click / Enter / Space toggles the view. |
 | `zoomable` / `maxZoom` / `wheelZoom` | `true` / `8` / `'ctrl'` | Zoom and pan: pinch, drag, `+` `−` `0` and arrow keys while the canvas is focused. `wheelZoom`: `'ctrl'` (Ctrl/⌘ + wheel and trackpad pinch; the plain wheel still scrolls the page), `'always'` or `'off'`. |
@@ -43,7 +44,7 @@ const city = createQrCity(hostElement, {
 
 `fallback` · `toQrSvg(opts?)` · `toQrPng(opts?)` · `zoom` · `setZoom(z, { immediate?, at? })` · `zoomBy(f)` · `resetZoom()` · `stage` · `openDoor()` · `continueIntro()` · `skipIntro()` · `reveal()` · `setView(view, { immediate? })` · `toggleView()` · `setStyle(style)` · `update(partial)` · `toPNG({ scale? })` · `play()` / `pause()` · `resize()` · `dispose()` · `canvas` · `view`.
 
-`update` only rebuilds the city when `data`, `style`, `errorCorrection` or `quality` change. Zooming stays sharp: the ground texture is painted at high resolution and the sun's shadow follows what is visible. `update` with a different `data`/`style` resets the zoom.
+`update` only rebuilds the city when `data`, `style`, `errorCorrection`, `quality` or `plaza` change. Zooming stays sharp: the ground texture is painted at high resolution and the sun's shadow follows what is visible. `update` with a different `data`/`style` resets the zoom.
 
 `dispose()` is idempotent and frees geometries, textures, materials, listeners, the loop and the WebGL context.
 

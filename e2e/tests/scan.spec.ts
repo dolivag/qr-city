@@ -64,6 +64,39 @@ test('flyover: the camera sweeps over the city, can be skipped, and ends on a sc
   expect(decode(downscale(img, 3))).toBe('https://danioliva.dev');
 });
 
+// The plaza covers the middle of the code: error correction 'H' has to rebuild it, whatever
+// the style, the text, the pattern or the picture (here a busy, colourful one), up to the largest size.
+for (const style of STYLES) {
+  test(`${style} · plaza: the top-down view with the plaza still scans`, async ({ page }) => {
+    for (const [name, data] of Object.entries(PAYLOADS)) {
+      const img = await topDown(page, { data, style, plaza: { size: 0.25 } });
+      for (const factor of [1, 3]) expect(decode(downscale(img, factor)), `${name} reduced ×${factor}`).toBe(data);
+    }
+  });
+}
+
+test('plaza with a picture: it is painted in the plaza and the code still scans', async ({ page }) => {
+  await page.goto('/');
+  const image = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 64;
+    const g = c.getContext('2d') as CanvasRenderingContext2D;
+    for (let i = 0; i < 64; i += 8) {
+      for (let j = 0; j < 64; j += 8) {
+        g.fillStyle = `hsl(${(i * 7 + j * 13) % 360} 80% ${(i + j) % 16 ? 30 : 70}%)`;
+        g.fillRect(i, j, 8, 8);
+      }
+    }
+    return c.toDataURL('image/png');
+  });
+  for (const data of [PAYLOADS.url, PAYLOADS.long]) {
+    await page.evaluate((o) => window.qrcity.mount(o as never), { data, style: 'moderna', plaza: { image, size: 0.25 } });
+    await page.waitForTimeout(300); // the picture is painted when it has loaded
+    const img = readPng(await page.evaluate(() => window.qrcity.topDownPng()));
+    for (const factor of [1, 3]) expect(decode(downscale(img, factor)), `${data} reduced ×${factor}`).toBe(data);
+  }
+});
+
 test('every error-correction level reads', async ({ page }) => {
   for (const errorCorrection of ['L', 'M', 'Q', 'H'] as const) {
     const img = await topDown(page, { data: PAYLOADS.url, style: 'moderna', errorCorrection });

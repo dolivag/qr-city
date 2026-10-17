@@ -29,7 +29,8 @@ To register it yourself: `import { defineQrCity } from '@qr-city/element'; defin
 | `wheel-zoom` | `wheelZoom` | `ctrl` (default) \| `always` \| `off`. |
 | `fallback` | `fallback` | `qr` (default): without WebGL shows a flat, scannable QR. `none`: fires `qr-city-error`. |
 | `view` | `view` | `city` \| `qr`. |
-| `error-correction` | `errorCorrection` | `L` `M` `Q` `H`. |
+| `error-correction` | `errorCorrection` | `L` `M` `Q` `H`. Always `H` with the plaza. |
+| `plaza`, `plaza-image`, `plaza-size` | `plaza` | A plaza in the middle with your picture, seen from above. Any of the three turns it on (`plaza="false"` turns it off); the property takes `true` or `{ image, size }`. |
 | `quality` | `quality` | `auto` `high` `low` `ultra` (see [`@qr-city/core`](../core#ultra-quality)). |
 | `animate` | `animated` | `auto` \| `true` \| `false`. |
 | `interactive` | `interactive` | `interactive="false"` disables click. |

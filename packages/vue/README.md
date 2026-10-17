@@ -24,7 +24,7 @@ const city = ref<InstanceType<typeof QrCity> | null>(null);
 
 ## Props and events
 
-The same options as [`createQrCity`](../core): `data`, `city-style`, `intro`, `pause-at-threshold`, `view`, `error-correction`, `quality`, `interactive`, `animate`, `max-pixel-ratio`, `zoomable`, `max-zoom`, `wheel-zoom`, `fallback`, `background`, `label` and `door-label`. **`city-style`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object), because `style` is the container's CSS style.
+The same options as [`createQrCity`](../core): `data`, `city-style`, `intro`, `pause-at-threshold`, `view`, `error-correction`, `quality`, `interactive`, `animate`, `max-pixel-ratio`, `zoomable`, `max-zoom`, `wheel-zoom`, `fallback`, `background`, `label`, `door-label` and `plaza`. **`city-style`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object), because `style` is the container's CSS style.
 
 | Event | Payload |
 | --- | --- |
@@ -40,7 +40,7 @@ The same options as [`createQrCity`](../core): `data`, `city-style`, `intro`, `p
 ## Behaviour
 
 - **Server (SSR, Nuxt…):** renders an empty `<div>` and starts WebGL in `onMounted`. In Nuxt, use `<ClientOnly>` to avoid the empty placeholder.
-- **Prop changes:** applied in place; the city only rebuilds when `data`, `city-style`, `error-correction` or `quality` change.
+- **Prop changes:** applied in place; the city only rebuilds when `data`, `city-style`, `error-correction`, `quality` or `plaza` change.
 - **`intro`** is fixed at creation: if it changes, the component restarts.
 - **Absent booleans** are not `false`: they are not passed to the core, which applies its own defaults.
 - **Without WebGL** a flat, scannable QR is shown and `fallback` is emitted (`fallback="none"` to get an `error` instead). **Other errors** (invalid data…) reach the `error` event; the component never throws on mount.
