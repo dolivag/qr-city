@@ -276,4 +276,25 @@ onChange(() => {
 });
 paintBar();
 
+// ---- Installable app: offline cache and the install button ------------------------------------------------
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => { /* the demo works without it */ }); });
+}
+/** Chromium offers to install the app through this event; other browsers use their own menu. */
+interface InstallPrompt extends Event { prompt(): Promise<void> }
+const installBtn = $<HTMLButtonElement>('install');
+let installPrompt: InstallPrompt | null = null;
+addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e as InstallPrompt;
+  installBtn.hidden = false;
+});
+installBtn.addEventListener('click', async () => {
+  if (!installPrompt) return;
+  await installPrompt.prompt();
+  installPrompt = null;
+  installBtn.hidden = true;
+});
+addEventListener('appinstalled', () => { installBtn.hidden = true; });
+
 sync();

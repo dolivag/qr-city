@@ -22,6 +22,10 @@
     <meta property="og:image:alt" data-i18n-attr="content:og.imageAlt" content="Una ciudad isométrica de rascacielos cuyos tejados forman un código QR, junto al título Ciudad QR." />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Ciudad QR" />
     <script>
       // Apply the saved theme before the first paint, so a dark page does not flash light.
       try { var th = localStorage.getItem('qr-city-theme'); if (th === 'light' || th === 'dark') document.documentElement.setAttribute('data-theme', th); } catch (e) {}
@@ -37,6 +41,7 @@
             <button type="button" data-lang="en" lang="en" aria-label="English">EN</button>
           </div>
           <button type="button" class="theme" id="theme"></button>
+          <button type="button" id="install" hidden data-i18n="bar.install">Instalar</button>
         </div>
         <h1 data-i18n="title" data-i18n-html>Ciudad <em>QR</em></h1>
         <p class="lede" data-i18n="lede">Una ciudad cuyos tejados forman un código QR. Desde arriba, se puede escanear.</p>
