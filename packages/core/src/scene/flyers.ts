@@ -15,6 +15,8 @@ interface Drone { obj: Group; led: Mesh; rotors: Mesh[]; R: number; h: number; a
 export interface Flyers extends Animated {
   /** Fades the snow with the decor (it lives outside the decor group). */
   setVisibility(vis: number): void;
+  /** Height of the canvas in CSS pixels: snowflakes are sized by it so they stay small on phones. */
+  setViewport(cssHeight: number): void;
 }
 
 /** What flies or falls: birds, gulls, drones or snow, depending on the style. */
@@ -120,15 +122,32 @@ export function createFlyers(ctx: SceneCtx): Flyers {
     }
     const g = geo(new BufferGeometry());
     g.setAttribute('position', new BufferAttribute(pos, 3));
+    // Soft round flakes (a plain point is a square).
+    const dot = document.createElement('canvas');
+    dot.width = dot.height = 32;
+    const dg = dot.getContext('2d') as CanvasRenderingContext2D;
+    const rg = dg.createRadialGradient(16, 16, 0, 16, 16, 16);
+    rg.addColorStop(0, 'rgba(255,255,255,1)');
+    rg.addColorStop(0.55, 'rgba(255,255,255,0.9)');
+    rg.addColorStop(1, 'rgba(255,255,255,0)');
+    dg.fillStyle = rg;
+    dg.fillRect(0, 0, 32, 32);
     snowMat = ctx.tracker.track(new PointsMaterial({
-      color: col(S.flyers.color), size: 3 * Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 2),
-      sizeAttenuation: false, transparent: true, opacity: 0.95,
+      color: col(S.flyers.color), size: 3, map: ctx.tracker.track(new CanvasTexture(dot)),
+      sizeAttenuation: false, transparent: true, opacity: 0.95, depthWrite: false,
     }));
     snow = new Points(g, snowMat);
     root.add(snow);
   }
 
   return {
+    setViewport(cssHeight) {
+      if (!snowMat) return;
+      // About 3 px on a tall desktop canvas, 1–1.5 px on a phone, times the pixel ratio.
+      const dpr = Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 2);
+      const px = Math.max(1.4, Math.min(3.5, cssHeight * 0.0045)) * dpr;
+      if (px !== snowMat.size) snowMat.size = px;
+    },
     setVisibility(vis) {
       if (!snow || !snowMat) return;
       snow.visible = vis > 0.01;
