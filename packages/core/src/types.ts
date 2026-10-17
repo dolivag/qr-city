@@ -3,14 +3,15 @@ import type { QrImageOptions, QrPngOptions } from './qr/image';
 /** Identifiers of the built-in styles. */
 export type QrCityStyleId = 'moderna' | 'costera' | 'ciberpunk' | 'nevada';
 
-/** How the city is introduced. `'flyover'` is not implemented yet. */
+/** How the city is introduced: `door` (walk out of a door), `flyover` (the camera sweeps over the city) or `none`. */
 export type QrCityIntro = 'door' | 'flyover' | 'none';
 
 /**
- * Stages of the `'door'` intro, in order:
+ * Stages of the intros, in order for `'door'`:
  * `door` (idle, waiting to be opened) → `entering` (door opens, camera walks in) →
  * `threshold` (white screen; waits here when `pauseAtThreshold` is set) →
- * `flying` (leaves through the door, the camera rises) → `done` (the city). `'none'` starts at `done`.
+ * `flying` (leaves through the door, the camera rises) → `done` (the city). `'none'` starts at `done`;
+ * `'flyover'` starts at `flying` (the camera sweeps over the city) and then goes to `done`.
  */
 export type QrCityIntroStage = 'door' | 'entering' | 'threshold' | 'flying' | 'done';
 
@@ -141,7 +142,7 @@ export interface QrCityOptions {
   label?: string;
   /** Accessible name of the canvas while the door is waiting to be opened. Default `'Open the door'`. */
   doorLabel?: string;
-  /** The city is on screen: it finished building (or the door intro finished). */
+  /** The city is on screen: it finished building (or the door or flyover intro finished). */
   onReveal?: () => void;
   /** The door intro moved to another stage. */
   onIntroStage?: (stage: QrCityIntroStage) => void;

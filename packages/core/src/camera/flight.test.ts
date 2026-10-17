@@ -1,6 +1,6 @@
 import { PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
-import { createFlight, FLIGHT_END } from './flight';
+import { createFlight, createFlyover, FLIGHT_END, FLYOVER_END } from './flight';
 import { fitHalfHeight, ISO } from './ortho';
 
 const door = new Vector3(3.5, 0, -2.5);
@@ -44,6 +44,39 @@ describe('door flight', () => {
     for (let t = 0; t <= FLIGHT_END; t += 0.05) {
       f.place(t, cam, 1);
       // The dolly zoom pulls back exponentially, so compare each step with the distance travelled so far.
+      if (prev) expect(cam.position.distanceTo(prev)).toBeLessThan(0.2 * Math.max(1, cam.position.length()));
+      prev = cam.position.clone();
+    }
+  });
+});
+
+describe('flyover', () => {
+  it('ends where the orthographic isometric camera starts (seamless swap)', () => {
+    const size = 41;
+    const aspect = 1.5;
+    const cam = new PerspectiveCamera();
+    createFlyover(size).place(FLYOVER_END, cam, aspect);
+    const dist = cam.position.distanceTo(new Vector3(0, 3, 0));
+    expect(cam.fov).toBeCloseTo(2, 5);
+    expect(dist * Math.tan((cam.fov * Math.PI) / 360)).toBeCloseTo(fitHalfHeight(size, 0, aspect), 4);
+    const dir = new Vector3(0, 3, 0).sub(cam.position).normalize();
+    expect(Math.acos(-dir.y)).toBeCloseTo(ISO.polar, 4);
+  });
+
+  it('starts outside the city, above the ground, and never touches the door', () => {
+    const cam = new PerspectiveCamera();
+    const f = createFlyover(41);
+    expect(f.place(0, cam, 1)).toBe(0);
+    expect(Math.hypot(cam.position.x, cam.position.z)).toBeGreaterThan(41 / 2);
+    expect(cam.position.y).toBeGreaterThan(2);
+  });
+
+  it('has a continuous camera path', () => {
+    const f = createFlyover(41);
+    const cam = new PerspectiveCamera();
+    let prev: Vector3 | null = null;
+    for (let t = 0; t <= FLYOVER_END; t += 0.05) {
+      f.place(t, cam, 1);
       if (prev) expect(cam.position.distanceTo(prev)).toBeLessThan(0.2 * Math.max(1, cam.position.length()));
       prev = cam.position.clone();
     }

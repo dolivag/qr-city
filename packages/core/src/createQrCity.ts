@@ -1,5 +1,5 @@
 import { LinearSRGBColorSpace, OrthographicCamera, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
-import { createFlight, FLIGHT_END } from './camera/flight';
+import { createFlight, createFlyover, FLIGHT_END, FLYOVER_END } from './camera/flight';
 import type { Flight } from './camera/flight';
 import { groundPointAt, placeOrtho } from './camera/ortho';
 import { resolveOptions, validateData } from './options';
@@ -80,6 +80,9 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   const persp = new PerspectiveCamera(38, 1, 0.05, 200);
   const reduceQuery = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
 
+  // Flyover: the city is complete and the camera sweeps over it. With reduced motion it is skipped.
+  const flyover = intro === 'flyover' && !(opts.animate === 'auto' ? !!reduceQuery?.matches : !opts.animate);
+
   // Door intro: a white veil on top of the canvas hides the cuts between scenes
   let doorScene: DoorScene | null = null;
   let veil: HTMLDivElement | null = null;
@@ -91,9 +94,9 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   }
 
   let city: City | null = null;
-  let stage: QrCityIntroStage = intro === 'door' ? 'door' : 'done';
+  let stage: QrCityIntroStage = intro === 'door' ? 'door' : flyover ? 'flying' : 'done';
   let enterStart = 0;
-  let flightStart = 0;
+  let flightStart = -1;
   let flight: Flight | null = null;
   let buildQueued = false;
   let disposed = false;
@@ -105,10 +108,10 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   let last = 0;
   let width = 0;
   let height = 0;
-  let t = intro === 'door' || opts.view !== 'qr' ? 0 : 1;
+  let t = intro === 'door' || flyover || opts.view !== 'qr' ? 0 : 1;
   let target = opts.view === 'qr' ? 1 : 0;
   let bornAt = -1;
-  let revealed = intro === 'door';
+  let revealed = intro === 'door' || flyover;
 
   // Zoom and pan of the city view. `zoomTarget` is what was asked for; `zoom` follows it smoothly.
   let zoom = 1;
@@ -146,7 +149,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
 
   function applyA11y() {
     const atDoor = stage === 'door';
-    const active = opts.interactive && (atDoor || stage === 'done');
+    const active = opts.interactive && (atDoor || stage === 'done' || (flyover && stage === 'flying'));
     canvas.setAttribute('aria-label', atDoor ? opts.doorLabel : opts.label);
     canvas.setAttribute('role', active ? 'button' : 'img');
     canvas.style.cursor = active ? 'pointer' : '';
@@ -337,13 +340,15 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     if (!city) return;
 
     if (stage === 'flying' && flight) {
+      if (flightStart < 0) flightStart = now;
       const el = (now - flightStart) / 1000;
-      setVeil(1 - smooth(0.12, 1.22, el));
+      const end = flyover ? FLYOVER_END : FLIGHT_END;
+      if (!flyover) setVeil(1 - smooth(0.12, 1.22, el));
       city.update({ now, dt, t: 0, reduce: still, bob: false });
-      const angle = flight.place(Math.min(el, FLIGHT_END), persp, aspect);
+      const angle = flight.place(Math.min(el, end), persp, aspect);
       if (city.door) city.door.hinge.rotation.y = angle;
       renderer.render(cityScene, persp);
-      if (advance && el >= FLIGHT_END) endIntro();
+      if (advance && el >= end) endIntro();
       return;
     }
 
@@ -393,6 +398,9 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     if (next === target && !o?.immediate) return;
     const changed = next !== target;
     target = next;
+    // The top-down view must show the whole QR centred: undo any zoom and pan on the way up.
+    // The zoom animates back to 1 while the pan eases to the centre (see `stepZoom`).
+    if (next === 1 && stage === 'done' && zoomTarget > 1) setZoom(1, { immediate: o?.immediate });
     if (stage === 'done') {
       if (o?.immediate || reduced() || !playing) t = target;
       if (stage === 'done') canvas.setAttribute('aria-pressed', String(target === 1));
@@ -406,6 +414,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
   const activate = () => {
     if (!opts.interactive) return;
     if (stage === 'door') openDoor();
+    else if (stage === 'flying' && flyover) skipIntro();
     else if (stage === 'done') toggleView();
   };
   const onClick = () => {
@@ -547,7 +556,10 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
 
   try {
     if (intro === 'door') buildDoorScene();
-    else buildCity(true);
+    else if (flyover) {
+      buildCity(false);
+      flight = createFlyover(ensureCity().size);
+    } else buildCity(true);
     applyBackground();
     applyA11y();
   } catch (e) {

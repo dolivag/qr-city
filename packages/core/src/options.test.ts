@@ -21,10 +21,10 @@ describe('resolveOptions', () => {
     expect(() => resolveOptions({ data: 'a'.repeat(MAX_DATA_LENGTH) })).not.toThrow();
   });
 
-  it('supports intros "none" and "door", but not "flyover" yet', () => {
+  it('supports intros "none", "door" and "flyover"', () => {
     expect(resolveOptions({ data: 'x', intro: 'door' }).intro).toBe('door');
+    expect(resolveOptions({ data: 'x', intro: 'flyover' }).intro).toBe('flyover');
     expect(resolveOptions({ data: 'x' }).pauseAtThreshold).toBe(false);
-    expect(() => resolveOptions({ data: 'x', intro: 'flyover' })).toThrow(/not implemented/);
     expect(() => resolveOptions({ data: 'x', intro: 'bogus' as never })).toThrow(/Invalid intro/);
   });
 
