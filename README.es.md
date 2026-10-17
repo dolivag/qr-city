@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/dolivag/qr-city/master/assets/logo/logo-mark.svg" alt="qr-city" width="160"></p>
+
 # qr-city
 
 [English](README.md) · **Español**
