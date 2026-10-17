@@ -2,8 +2,8 @@
 import '@fontsource/young-serif/latin-400.css';
 import '@fontsource/young-serif/latin-ext-400.css';
 import '@fontsource-variable/hanken-grotesk/wght.css';
-import '@fontsource/fragment-mono/latin-400.css';
-import '@fontsource/fragment-mono/latin-ext-400.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '@fontsource/ibm-plex-mono/latin-ext-400.css';
 // Extra modelled parts for `quality: 'ultra'`.
 import '@qr-city/core/ultra';
 import { defineQrCity } from '@qr-city/element';
