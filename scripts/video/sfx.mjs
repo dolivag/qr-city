@@ -49,12 +49,18 @@ function click(pitch = 1800, length = 0.05) {
   return out;
 }
 
-function tick(pitch) {
-  const n = samples(0.03);
+/** Una tecla: madera grave. Un cuerpo que cae de 260 a 130 Hz y un golpecito de ruido filtrado; cada tecla suena un poco distinta. */
+function key() {
+  const len = 0.12;
+  const n = samples(len);
+  const nz = lowpass(noise(len), 900);
   const out = new Float64Array(n);
+  const jitter = 0.93 + rand() * 0.14;
+  let phase = 0;
   for (let i = 0; i < n; i++) {
     const t = i / SR;
-    out[i] = (Math.sin(2 * Math.PI * pitch * t) * 0.5 + (rand() * 2 - 1) * 0.35) * Math.exp(-t * 160);
+    phase += (2 * Math.PI * (130 + 130 * Math.exp(-t * 60)) * jitter) / SR;
+    out[i] = Math.sin(phase) * Math.exp(-t / 0.03) * Math.min(1, t / 0.0015) + nz[i] * 0.9 * Math.exp(-t / 0.008);
   }
   return out;
 }
@@ -135,12 +141,8 @@ for (const s of at('door-tap')) {
   put(thunk(), s, 0.55);
   put(whoosh(0.9, 200, 1800, 0.5), s, 0.45);
 }
-// Teclear el enlace: un tic por fotograma entre type-start y type-end
-const [typeStart] = at('type-start');
-const [typeEnd] = at('type-end');
-if (typeStart !== undefined && typeEnd !== undefined) {
-  for (let s = typeStart; s < typeEnd; s += 1 / fps) put(tick(1900 + rand() * 800), s, 0.22, rand() * 0.4 - 0.2);
-}
+// Teclear el enlace: una tecla por cada pulsación que anotó record.mjs
+for (const s of at('key')) put(key(), s, 0.55, rand() * 0.4 - 0.2);
 // Empieza el vuelo
 for (const s of at('build')) put(whoosh(1.0, 250, 3000, 0.5), s, 0.4);
 // La ciudad aparece

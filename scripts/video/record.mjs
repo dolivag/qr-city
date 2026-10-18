@@ -342,9 +342,13 @@ async function main() {
   const [ix, iy] = await center('#data');
   await tapAt(ix, iy, 2);
   await p.fill('#data', '');
-  ev('type-start');
-  for (const ch of LINK) { await p.keyboard.type(ch); await frame(1); }
-  ev('type-end');
+  // Una tecla cada 3 fotogramas (8 por segundo a 24 fps): se lee lo que se escribe
+  const KEY_FRAMES = Math.max(2, Math.round(opts.fps / 8));
+  for (const ch of LINK) {
+    events.push(['key', k]);
+    await p.keyboard.type(ch);
+    await frame(KEY_FRAMES);
+  }
   await frame(6);
   await caption(TEXT.pick, true);
   const [cx, cy] = await center(`label.opt:has(input[value="${FIRST_STYLE}"])`);
