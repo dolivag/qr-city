@@ -4,12 +4,15 @@ import { pick, rand, ringPoint } from '../util/math';
 import type { Animated, SceneCtx } from './ctx';
 import { roundedPrism } from './geometry';
 
+/** Boats are drawn a little larger than true to scale, so they read as boats from the isometric view. */
+const BOAT_SCALE = 1.5;
+
 interface Boat { obj: Object3D; R: number; s: number; v: number }
 
 /** Lighthouse and sailing boats around a city that stands in the sea (`palette.water`). */
 export function createCoast(ctx: SceneCtx): Animated | null {
   if (!ctx.style.palette.water) return null;
-  const { decor, lambert, basic, geo, R, half } = ctx;
+  const { decor, lambert, basic, geo, R, half, size } = ctx;
 
   const lh = new Group();
   for (let k = 0; k < 5; k++) {
@@ -35,13 +38,15 @@ export function createCoast(ctx: SceneCtx): Animated | null {
   sail.lineTo(0, 0);
   const sailGeo = geo(new ShapeGeometry(sail).translate(-0.12, 0.1, 0));
   const sailMat = lambert(0xffffff, { side: DoubleSide });
-  const R_boat = half + 5.35;
+  // Boats sail in the middle of the open water: between the beach (half + 4.75) and the edge of the slab
+  const R_boat = (half + 4.75 + size / 2) / 2;
   const boats: Boat[] = [];
   for (let i = 0; i < 6; i++) {
     const b = new Group();
     b.add(new Mesh(hullGeo, lambert(pick([0xffffff, 0xf6d38a, 0xf4a5a0], rand(i, 4)))));
     b.add(new Mesh(sailGeo, sailMat));
     decor.add(b);
+    b.userData.big = true;
     boats.push({ obj: b, R: R_boat, s: i * ((8 * R_boat) / 6), v: 0.25 + rand(i, 6) * 0.15 });
   }
 
@@ -54,7 +59,7 @@ export function createCoast(ctx: SceneCtx): Animated | null {
         b.obj.position.set(x, Math.sin(now / 500 + b.s) * 0.03, z);
         b.obj.rotation.y = -ang;
         b.obj.rotation.x = Math.sin(now / 700 + b.s) * 0.06;
-        b.obj.scale.setScalar(k);
+        b.obj.scale.setScalar(k * BOAT_SCALE);
       }
     },
   };
