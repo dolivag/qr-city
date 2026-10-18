@@ -35,7 +35,7 @@ zoom a detalles del estilo creado → Costera, Nevada y Moderna con sus detalles
 Todo está al principio de `record.mjs`:
 
 - `TEXT`: rótulos en español e inglés.
-- `TOUR`, `FIRST_DETAIL`, `NIGHT_DETAIL`: a qué punto de la pantalla (`at`, 0–1) y cuánto (`zoom`) se acerca la
+- `TOUR`, `FIRST_DETAIL`: a qué punto de la pantalla (`at`, 0–1) y cuánto (`zoom`) se acerca la
   cámara. Lo que hay allí se mueve (drones, barcos, personas, aves), así que si un zoom no pilla lo que quieres,
   cambia la posición y vuelve a grabar.
 - `LINK`: el enlace que se teclea; `FIRST_STYLE`: el estilo con el que nace la ciudad.

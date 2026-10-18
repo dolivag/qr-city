@@ -83,14 +83,13 @@ const TEXT = {
     ],
     top: 'Desde arriba, <em>se escanea</em>',
     ok: '✓ Comprobado: se lee',
-    tour: 'Cuatro estilos, <em>un mismo código</em>',
-    night: 'Y cuando cae la <em>noche</em>…',
+    styles: { ciberpunk: 'Ciberpunk', costera: 'Costera', nevada: 'Nevada', moderna: 'Moderna' },
+    night: 'Y también, <em>de noche</em>',
     details: {
       ciberpunk: 'Drones, neón y <em>tráfico</em>',
       costera: 'Faro y <em>barcos</em>',
       nevada: 'Nieve y gente <em>paseando</em>',
       moderna: 'Aves, coches y <em>vecinos</em>',
-      night: 'Cada ventana, <em>encendida</em>',
     },
     endTag: 'npm i @qr-city/element',
   },
@@ -108,14 +107,13 @@ const TEXT = {
     ],
     top: 'From above, <em>it scans</em>',
     ok: '✓ Checked: it reads',
-    tour: 'Four styles, <em>one code</em>',
-    night: 'And when <em>night</em> falls…',
+    styles: { ciberpunk: 'Cyberpunk', costera: 'Coastal', nevada: 'Snowy', moderna: 'Modern' },
+    night: 'And <em>at night</em>, too',
     details: {
       ciberpunk: 'Drones, neon and <em>traffic</em>',
       costera: 'A lighthouse and <em>boats</em>',
       nevada: 'Snow and people <em>out for a walk</em>',
       moderna: 'Birds, cars and <em>neighbours</em>',
-      night: 'Every window, <em>lit</em>',
     },
     endTag: 'npm i @qr-city/element',
   },
@@ -134,7 +132,6 @@ const TOUR = [
 ];
 /** Primer detalle, en el estilo en que se pide la ciudad (ciberpunk). */
 const FIRST_DETAIL = { style: 'ciberpunk', at: { x: 0.5, y: 0.45 }, zoom: 3.5 };
-const NIGHT_DETAIL = { at: { x: 0.5, y: 0.5 }, zoom: 3 };
 const FIRST_STYLE = 'ciberpunk';
 const LINK = 'https://qr-city.danioliva.dev';
 
@@ -353,7 +350,7 @@ async function main() {
   const [cx, cy] = await center(`label.opt:has(input[value="${FIRST_STYLE}"])`);
   await tapAt(cx, cy, 2);
   ev('style1');
-  await frame(14);
+  await frame(Math.round(opts.fps * 2.4)); // tiempo para ver qué se ha elegido antes de construir
   const [bx, by] = await center('button.primary');
   await tapAt(bx, by, 2);
   ev('build');
@@ -391,11 +388,11 @@ async function main() {
 
   // 6 · De vuelta a la ciudad: detalles del estilo en que se creó, y luego los demás estilos
   await p.evaluate(() => document.getElementById('city').setView('city'));
-  await caption(TEXT.tour);
+  await caption(TEXT.styles[FIRST_STYLE]);
   await frame(Math.round(opts.fps * 1.6));
   await detail(TEXT.details[FIRST_DETAIL.style], FIRST_DETAIL);
   for (const step of TOUR) {
-    await caption(TEXT.tour);
+    await caption(TEXT.styles[step.style]);
     await swap({ cityStyle: step.style });
     await detail(TEXT.details[step.style], step);
   }
@@ -404,8 +401,7 @@ async function main() {
   await caption(TEXT.night);
   await swap({ time: 'night' });
   ev('night');
-  await detail(TEXT.details.night, NIGHT_DETAIL);
-  await frame(Math.round(opts.fps * 0.6));
+  await frame(Math.round(opts.fps * 2.6));
 
   // 8 · Final
   await cut(async () => { await call('__end'); });
