@@ -28,6 +28,17 @@ function nightDoor(d: QrCityDoorTheme): QrCityDoorTheme {
   };
 }
 
+/**
+ * A foliage colour for moonlight. The light is blue, which pushes any green towards teal and then
+ * grey; so the colour is made yellower and a little darker first, and under that light it reads as
+ * a deep green instead.
+ */
+function moonlit(hex: string): string {
+  const k = [1.3, 1.12, 0.5];
+  const out = [1, 3, 5].map((i, c) => Math.min(255, Math.round(parseInt(hex.slice(i, i + 2), 16) * k[c] * 0.82)));
+  return `#${out.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
 const cache = new WeakMap<QrCityStyle, QrCityStyle>();
 
 /**
@@ -65,7 +76,7 @@ export function nightOf(style: QrCityStyle): QrCityStyle {
       windowColor: '#ffe3a1',
       neon: style.buildings.neon ?? WARM_WINDOWS,
     },
-    vegetation: { ...style.vegetation, colors: style.vegetation.kind === 'neon' ? style.vegetation.colors : style.vegetation.colors.map((c) => dim(c, 0.4)) },
+    vegetation: { ...style.vegetation, colors: style.vegetation.kind === 'neon' ? style.vegetation.colors : style.vegetation.colors.map(moonlit) },
     flyers: { ...style.flyers, color: style.flyers.kind === 'birds' || style.flyers.kind === 'gulls' ? '#cfd8ff' : style.flyers.color },
     door: nightDoor(style.door ?? (moderna.door as QrCityDoorTheme)),
   };
