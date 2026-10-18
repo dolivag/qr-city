@@ -39,7 +39,7 @@ The same options as [`createQrCity`](../core): `data`, `city-style`, `intro`, `p
 
 ## Behaviour
 
-- **Server (SSR, Nuxt…):** renders an empty `<div>` and starts WebGL in `onMounted`. In Nuxt, use `<ClientOnly>` to avoid the empty placeholder.
+- **Server (SSR, Nuxt…):** renders a flat QR in the city's colors (the very same code, hidden from screen readers), so the page already works, scans and does not jump while the 3D city loads. WebGL starts in `onMounted` and replaces it.
 - **Prop changes:** applied in place; the city only rebuilds when `data`, `city-style`, `error-correction`, `quality` or `plaza` change.
 - **`intro`** is fixed at creation: if it changes, the component restarts.
 - **Absent booleans** are not `false`: they are not passed to the core, which applies its own defaults.

@@ -24,6 +24,7 @@ function fakeController() {
 
 vi.mock('@qr-city/core', () => ({
   styles: { moderna: { id: 'moderna' } },
+  qrPlaceholder: vi.fn(() => '<svg data-placeholder="1" width="100%" height="100%"></svg>'),
   createQrCity: vi.fn((_el: HTMLElement, options: Record<string, unknown>) => {
     if (failNext) throw new Error('no webgl');
     lastOptions = options;
@@ -148,6 +149,16 @@ describe('<QrCity>', () => {
   it('server-renders an empty container and never touches WebGL', () => {
     const html = renderToString(<QrCity data="a" className="c" />);
     expect(html).toContain('<div');
+    expect(html).toContain('data-placeholder="1"');
+    expect(html).toContain('aria-hidden="true"');
     expect(controllers).toHaveLength(0);
+  });
+
+  it('shows the placeholder until the 3D city has painted, then removes it', async () => {
+    await render(<QrCity data="a" />);
+    expect(host.querySelector('[data-placeholder]')).not.toBeNull();
+    await act(async () => { await new Promise((r) => setTimeout(r, 80)); });
+    expect(host.querySelector('[data-placeholder]')).toBeNull();
+    expect(controllers).toHaveLength(1);
   });
 });

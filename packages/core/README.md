@@ -65,6 +65,8 @@ city.toQrSvg({ dark: '#111', margin: 4 });                          // the city'
 
 `qrToSvg` needs neither DOM nor WebGL, so it works on the server. Options: `errorCorrection`, `margin` (modules, default 4), `dark`, `light` (simple CSS colours) and `title`.
 
+`qrPlaceholder({ data, style?, time?, errorCorrection?, plaza?, title? })` returns a flat QR as an SVG that fills its container, in the roof and ground colours of the city's style: the very same code the city draws (level `H` with a plaza). It is what the React, Vue and Angular components render on the server and while the 3D city loads, and it works anywhere `qrToSvg` does.
+
 **Without WebGL** (old browser, blocked GPU, lost context) `createQrCity` no longer throws: it shows that same flat QR, using the style's roof and ground colours, and returns a controller with `fallback: true` and `canvas: null` where the 3D-only methods are harmless and `update`, `toQrSvg`, `toQrPng` and `toPNG` keep working. `onFallback` is called (or a `console.warn` if you do not define it) and the intro completes (`onIntroStage('done')`, `onReveal`) so your UI is not left waiting. If the WebGL context is lost and does not come back within 3 s, the flat QR is overlaid on the canvas. With `fallback: 'none'` the usual error is thrown.
 
 ## Door intro

@@ -14,7 +14,8 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { createQrCity } from '@qr-city/core';
+import { DomSanitizer } from '@angular/platform-browser';
+import { createQrCity, qrPlaceholder } from '@qr-city/core';
 import type {
   QrCityController,
   QrCityEcc,
@@ -40,8 +41,9 @@ type ConfigOptions = Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewCh
  */
 @Component({
   selector: 'qr-city-view',
-  template: '',
-  styles: [':host { display: block; position: relative; aspect-ratio: 1 / 1; }'],
+  // A flat QR in the city's colors: what the server renders, and what shows until the 3D city has taken over
+  template: '@if (placeholder(); as svg) { <div class="qr-city-ssr" aria-hidden="true" [innerHTML]="svg"></div> }',
+  styles: [':host { display: block; position: relative; aspect-ratio: 1 / 1; } .qr-city-ssr { position: absolute; inset: 0; }'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QrCityComponent {
@@ -85,6 +87,9 @@ export class QrCityComponent {
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly zone = inject(NgZone);
+  private readonly sanitizer = inject(DomSanitizer);
+  /** The 3D city has painted: the flat QR can go. */
+  private readonly settled = signal(false);
   private readonly mounted = signal(false);
   private instance: QrCityController | null = null;
 
@@ -113,6 +118,17 @@ export class QrCityComponent {
     };
     for (const k of Object.keys(all)) if (all[k] === undefined) delete all[k];
     return all as unknown as ConfigOptions;
+  });
+
+  /** The flat QR (our own SVG, built from the validated data: the sanitizer would only strip it). */
+  protected readonly placeholder = computed(() => {
+    if (this.settled()) return null;
+    try {
+      const { data, style, time, errorCorrection, plaza, label } = { ...this.config(), style: this.cityStyle() } as ConfigOptions & { style?: QrCityStyle | QrCityStyleId };
+      return this.sanitizer.bypassSecurityTrustHtml(qrPlaceholder({ data, style, time, errorCorrection, plaza, title: label }));
+    } catch {
+      return null; // invalid data: the controller reports it
+    }
   });
 
   /** The controller (`null` until the first render, and on the server). */
@@ -189,6 +205,8 @@ export class QrCityComponent {
     } catch (error) {
       this.report(error);
     }
+    // The 3D canvas is opaque and already covers the flat QR; this only removes it from the page, once it has painted
+    requestAnimationFrame(() => requestAnimationFrame(() => this.settled.set(true)));
   }
 
   private destroy(): void {

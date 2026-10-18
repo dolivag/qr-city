@@ -39,7 +39,7 @@ The same options as [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshol
 
 ## Behaviour
 
-- **Server (SSR, Next.js…):** renders an empty `<div>` and starts WebGL on mount. The package ships `"use client"`.
+- **Server (SSR, Next.js…):** renders a flat QR in the city's colors (the very same code, hidden from screen readers), so the page already works, scans and does not jump while the 3D city loads. WebGL starts on mount and replaces it. The package ships `"use client"`.
 - **Prop changes:** applied in place; the city only rebuilds when `data`, `cityStyle`, `errorCorrection`, `quality` or `plaza` change. A style object recreated on every render with the same content rebuilds nothing.
 - **`intro`** is fixed at creation: if it changes, the component restarts.
 - **`view`** is applied when it changes; the user can toggle the view with a click without the prop changing.

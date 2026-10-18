@@ -1,4 +1,4 @@
-import { createQrCity } from '@qr-city/core';
+import { createQrCity, qrPlaceholder } from '@qr-city/core';
 import type {
   QrCityController,
   QrCityEcc,
@@ -52,6 +52,8 @@ export const QrCity = defineComponent({
   emits: ['reveal', 'intro-stage', 'view-change', 'zoom-change', 'fallback', 'error'],
   setup(props, { emit, expose }) {
     const host = ref<HTMLElement | null>(null);
+    // The flat QR shown until the 3D city has taken over (it is also what the server renders)
+    const placeholderShown = ref(true);
     let controller: QrCityController | null = null;
 
     /** Core options from the props, dropping `undefined` so the core applies its own defaults. */
@@ -87,7 +89,11 @@ export const QrCity = defineComponent({
       controller = null;
     }
 
-    onMounted(create);
+    onMounted(() => {
+      create();
+      // The 3D canvas is opaque and already covers the placeholder; this only removes it from the page, once it has painted
+      requestAnimationFrame(() => requestAnimationFrame(() => { placeholderShown.value = false; }));
+    });
     onBeforeUnmount(destroy);
 
     // `intro` is fixed when the city is created, so changing it starts over.
@@ -131,7 +137,22 @@ export const QrCity = defineComponent({
       pause: () => c()?.pause(),
     });
 
-    return () => h('div', { ref: host, style: { width: '100%', aspectRatio: '1 / 1' } });
+    const placeholder = () => {
+      try {
+        return qrPlaceholder({ data: props.data, style: props.cityStyle, time: props.time, errorCorrection: props.errorCorrection, plaza: props.plaza, title: props.label });
+      } catch {
+        return ''; // invalid data: the controller reports it
+      }
+    };
+
+    return () => {
+      const svg = placeholderShown.value ? placeholder() : '';
+      return h(
+        'div',
+        { ref: host, style: { width: '100%', aspectRatio: '1 / 1', position: 'relative' } },
+        svg ? [h('div', { 'aria-hidden': 'true', style: { position: 'absolute', inset: '0' }, innerHTML: svg })] : [],
+      );
+    };
   },
 });
 
