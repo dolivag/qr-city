@@ -1,6 +1,6 @@
-import { createQrCity } from '@qr-city/core';
+import { createQrCity, qrPlaceholder } from '@qr-city/core';
 import type { QrCityController, QrCityOptions, QrCityStyle, QrCityStyleId } from '@qr-city/core';
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, HTMLAttributes } from 'react';
 
 type Callbacks = Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError'>;
@@ -16,11 +16,13 @@ export interface QrCityProps
 /** The controller as seen through a React ref: safe to call before the city is mounted (no-ops). */
 export type QrCityHandle = Omit<QrCityController, 'canvas'> & { readonly canvas: HTMLCanvasElement | null };
 
-const DEFAULT_STYLE: CSSProperties = { width: '100%', aspectRatio: '1 / 1' };
+const DEFAULT_STYLE: CSSProperties = { width: '100%', aspectRatio: '1 / 1', position: 'relative' };
+const PLACEHOLDER_STYLE: CSSProperties = { position: 'absolute', inset: 0 };
 
 /**
  * A 3D city whose rooftops form a scannable QR code. Size it with CSS (default: a square as wide
- * as its container). Renders an empty `<div>` on the server and starts WebGL after mounting.
+ * as its container). On the server it renders a flat QR in the city's colors (the same code, so the
+ * page works before any JavaScript does and does not jump); WebGL starts after mounting and replaces it.
  *
  * Use a `ref` to drive it: `ref.current.reveal()`, `.setZoom(3)`, `.toPNG()`…
  */
@@ -33,6 +35,8 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
   } = props;
 
   const hostRef = useRef<HTMLDivElement>(null);
+  // The flat QR shown until the 3D city has taken over (it is also what the server renders)
+  const [placeholderShown, setPlaceholderShown] = useState(true);
   const controllerRef = useRef<QrCityController | null>(null);
 
   // Handlers change identity on every render; the controller always calls the latest ones.
@@ -72,7 +76,10 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
     } catch (error) {
       report(error);
     }
+    // The 3D canvas is opaque and already covers the placeholder; this only removes it from the page, once it has painted
+    const frame = requestAnimationFrame(() => requestAnimationFrame(() => setPlaceholderShown(false)));
     return () => {
+      cancelAnimationFrame(frame);
       controllerRef.current?.dispose();
       controllerRef.current = null;
     };
@@ -125,7 +132,19 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
   }, []);
   useImperativeHandle(ref, () => handle, [handle]);
 
-  return <div {...rest} ref={hostRef} className={className} style={{ ...DEFAULT_STYLE, ...style }} />;
+  const placeholder = useMemo(() => {
+    try {
+      return qrPlaceholder({ data, style: stableStyle, time, errorCorrection, plaza, title: label });
+    } catch {
+      return ''; // invalid data: the controller reports it
+    }
+  }, [data, stableStyle, time, errorCorrection, plaza && JSON.stringify(plaza), label]);
+
+  return (
+    <div {...rest} ref={hostRef} className={className} style={{ ...DEFAULT_STYLE, ...style }}>
+      {placeholderShown && placeholder && <div aria-hidden="true" style={PLACEHOLDER_STYLE} dangerouslySetInnerHTML={{ __html: placeholder }} />}
+    </div>
+  );
 });
 
 /** Drops `undefined` values so the core applies its own defaults. */

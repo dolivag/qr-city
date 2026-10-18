@@ -42,7 +42,7 @@ The selector is `qr-city-view` (so it does not clash with the `<qr-city>` Web Co
 
 ## Behaviour
 
-- **Server (SSR):** WebGL starts in `afterNextRender`, which does not run on the server.
+- **Server (SSR):** renders a flat QR in the city's colors (the very same code, hidden from screen readers), so the page already works, scans and does not jump while the 3D city loads. WebGL starts in `afterNextRender` (which does not run on the server) and replaces it.
 - **Zone:** the animation loop runs outside `NgZone`, so it does not trigger change detection every frame. Outputs are emitted inside the zone.
 - **Input changes:** applied in place; the city only rebuilds when `data`, `cityStyle`, `errorCorrection`, `quality` or `plaza` change.
 - **`intro`** is fixed at creation: if it changes, the component restarts.
