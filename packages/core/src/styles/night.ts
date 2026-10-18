@@ -55,6 +55,8 @@ export function nightOf(style: QrCityStyle): QrCityStyle {
       sun: '#a9bcff',
       sunIntensity: 0.32,
       base: dim(P.base, 0.5),
+      // The sea catches the moon: lighter, so that it still reads as water in the dark
+      water: P.water ? mix(P.water, '#8fd6ff', 0.3) : undefined,
       towers: P.towers.map((c) => dim(c, 0.5)),
       houses: P.houses.map((c) => dim(c, 0.4)),
     },

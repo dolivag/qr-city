@@ -40,8 +40,12 @@ const LIGHT_SCALE = Math.PI;
 const MAX_GROUND_TEXTURE = 4096;
 /** Glass of a window with the light off, at night. */
 const NIGHT_DARK_GLASS = '#1c2240';
-/** How bright the ground stays at night, seen from the side (1 = as by day). */
-const NIGHT_GROUND = 0.3;
+/**
+ * How the ground is lit at night, seen from the side: a cool moonlight tint (the ground is unlit, so
+ * it would stay as bright as by day). Snow turns blue-white and the sea a deep blue, which keeps them
+ * recognisable; the tint fades to nothing in the top-down view.
+ */
+const NIGHT_GROUND = [0.4, 0.48, 0.7] as const;
 /** Floor counts a tower can have: close enough to any height, few enough to share geometry. */
 const FLOOR_STEPS = [2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 19, 22, 26, 30, 35, 41];
 /** Side of a building as a fraction of its module while the city is seen from the side. */
@@ -707,7 +711,10 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       b.scale.set(fill, Math.max(0.001, 1 - Math.pow(1 - k, 3)), fill);
     }
     // At night the ground (unlit, so it would stay bright) is dimmed from the side and lights up for the QR
-    if (S.night) groundMat.color.setScalar(NIGHT_GROUND + (1 - NIGHT_GROUND) * smooth(0.3, 0.9, t));
+    if (S.night) {
+      const k = smooth(0.3, 0.9, t);
+      groundMat.color.setRGB(NIGHT_GROUND[0] + (1 - NIGHT_GROUND[0]) * k, NIGHT_GROUND[1] + (1 - NIGHT_GROUND[1]) * k, NIGHT_GROUND[2] + (1 - NIGHT_GROUND[2]) * k);
+    }
     const vis = 1 - smooth(0.05, 0.55, t);
     decor.visible = vis > 0.01;
     flyers.setVisibility(vis);
