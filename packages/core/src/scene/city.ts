@@ -448,6 +448,14 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
           b.save();
           b.translate((cx * 64) / cells, (cy * 64) / cells);
           b.scale(1 / cells, 1 / cells);
+          if (S.night) {
+            // The light spills onto the wall around the window
+            const halo = b.createRadialGradient(32, 32, 8, 32, 32, 25);
+            halo.addColorStop(0, 'rgba(255,255,255,0.42)');
+            halo.addColorStop(1, 'rgba(255,255,255,0)');
+            b.fillStyle = halo;
+            b.fillRect(0, 0, 64, 64);
+          }
           b.fillStyle = '#fff';
           if (detailed) for (const [x, y, w, h] of GLASS) b.fillRect(x, y, w, h);
           else {
@@ -469,7 +477,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   })();
   const towerMats = P.towers.map((c, i) =>
     neon
-      ? lambert(c, { map: facade.map, emissive: col(neon[i % neon.length]), emissiveMap: facade.mask, emissiveIntensity: S.night ? 1.25 : 0.9 })
+      ? lambert(c, { map: facade.map, emissive: col(neon[i % neon.length]), emissiveMap: facade.mask, emissiveIntensity: S.night ? 1.55 : 0.9 })
       : lambert(c, { map: facade.map }),
   );
   const houseMats = P.houses.map((c) => lambert(c));
@@ -676,6 +684,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     const key = `${x.toFixed(2)},${z.toFixed(2)},${zoom.toFixed(2)}`;
     if (key === focus) return;
     focus = key;
+    for (const m of modules) m?.setZoom?.(zoom);
     const full = size * 0.85;
     const ext = zoom <= 1 ? full : Math.min(full, Math.max(6, (full / zoom) * 1.35));
     sc.left = sc.bottom = -ext;
@@ -761,5 +770,5 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     root.clear();
   }
 
-  return { root, riseDuration, size, door: doorInfo, update, setFocus, setViewport: (h) => flyers.setViewport(h), dispose };
+  return { root, riseDuration, size, door: doorInfo, update, setFocus, setViewport: (h) => { for (const m of modules) m?.setViewport?.(h); }, dispose };
 }

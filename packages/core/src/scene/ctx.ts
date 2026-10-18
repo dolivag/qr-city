@@ -45,4 +45,8 @@ export interface AnimFrame {
 
 export interface Animated {
   update(f: AnimFrame): void;
+  /** Height of the canvas in CSS pixels, for things sized in screen pixels. */
+  setViewport?(cssHeight: number): void;
+  /** Zoom of the city view (1 = the whole city in view). */
+  setZoom?(zoom: number): void;
 }

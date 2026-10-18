@@ -4,6 +4,7 @@ import { rand, ringPoint } from '../util/math';
 import { col } from './color';
 import type { Animated, SceneCtx } from './ctx';
 import { blobGeo } from './geometry';
+import { createGlow } from './glow';
 import { getUltra } from './ultraKit';
 
 /** Trees (round, palm, pine or neon) and street lamps along the outer ring, plus lamps along the inner one. */
@@ -140,6 +141,8 @@ export function createVegetation(ctx: SceneCtx): Animated {
   };
 
   const props: Object3D[] = [];
+  /** Where the bulbs are, to give them a halo at night. */
+  const bulbs: number[] = [];
   const steps = Math.floor((8 * R.tree) / profile.propStep);
   for (let i = 0; i < steps; i++) {
     const [x, z] = ringPoint(R.tree, i * profile.propStep + 0.3);
@@ -147,6 +150,7 @@ export function createVegetation(ctx: SceneCtx): Animated {
     o.position.set(x, 0, z);
     decor.add(o);
     props.push(o);
+    if (i % 5 === 4) bulbs.push(x, 0.72, z);
   }
   for (let i = 0; i < Math.floor((8 * R.inner) / 2.2); i++) {
     const [x, z] = ringPoint(R.inner + 0.2, i * 2.2 + 1);
@@ -154,11 +158,17 @@ export function createVegetation(ctx: SceneCtx): Animated {
     l.position.set(x, 0, z);
     decor.add(l);
     props.push(l);
+    bulbs.push(x, 0.72, z);
   }
 
+  const glow = S.night ? createGlow(ctx, bulbs, neon ? '#ff6fd8' : '#ffd9a0') : null;
+
   return {
-    update({ k }) {
-      for (const p of props) p.scale.setScalar(k);
+    update(f) {
+      for (const p of props) p.scale.setScalar(f.k);
+      glow?.update(f);
     },
+    setViewport: (h) => glow?.setViewport(h),
+    setZoom: (z) => glow?.setZoom(z),
   };
 }
