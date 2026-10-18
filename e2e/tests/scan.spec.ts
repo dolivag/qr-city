@@ -205,6 +205,40 @@ test('everything works with the keyboard: reveal the QR, zoom, move around and c
   await expect(canvas).toHaveAttribute('aria-pressed', 'false');
 });
 
+test('plaza: a white logo is inverted on its own, so that it shows on the light paving', async ({ page }) => {
+  await page.goto('/');
+  // A white ring and a white square on a transparent background: invisible on a light plaza
+  const image = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d') as CanvasRenderingContext2D;
+    g.strokeStyle = g.fillStyle = '#ffffff';
+    g.lineWidth = 12;
+    g.beginPath();
+    g.arc(64, 64, 50, 0, Math.PI * 2);
+    g.stroke();
+    g.fillRect(44, 44, 40, 40);
+    return c.toDataURL('image/png');
+  });
+  const darkInPlaza = async (invert: 'auto' | boolean) => {
+    await page.evaluate((o) => window.qrcity.mount(o as never), { data: PAYLOADS.url, style: 'moderna', plaza: { image, size: 0.25, invert } });
+    await page.waitForTimeout(300);
+    const img = readPng(await page.evaluate(() => window.qrcity.topDownPng()));
+    const from = Math.round(img.width * 0.45);
+    const to = Math.round(img.width * 0.55);
+    let dark = 0;
+    for (let y = from; y < to; y++) {
+      for (let x = from; x < to; x++) {
+        const i = (y * img.width + x) * 4;
+        if (0.2126 * img.data[i] + 0.7152 * img.data[i + 1] + 0.0722 * img.data[i + 2] < 100) dark++;
+      }
+    }
+    return dark;
+  };
+  expect(await darkInPlaza('auto')).toBeGreaterThan(80);
+  expect(await darkInPlaza(false)).toBe(0);
+});
+
 test('every error-correction level reads', async ({ page }) => {
   for (const errorCorrection of ['L', 'M', 'Q', 'H'] as const) {
     const img = await topDown(page, { data: PAYLOADS.url, style: 'moderna', errorCorrection });
