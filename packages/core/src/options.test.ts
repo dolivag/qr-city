@@ -72,9 +72,9 @@ describe('styles', () => {
     expect(resolveOptions({ data: 'x' }).plaza).toBeNull();
     expect(resolveOptions({ data: 'x', plaza: false }).plaza).toBeNull();
     const on = resolveOptions({ data: 'x', plaza: true, errorCorrection: 'L' });
-    expect(on.plaza).toEqual({ image: null, size: 0.2 });
+    expect(on.plaza).toEqual({ image: null, size: 0.2, invert: 'auto' });
     expect(on.errorCorrection).toBe('H');
-    expect(resolveOptions({ data: 'x', plaza: { image: 'logo.png', size: 0.25 } }).plaza).toEqual({ image: 'logo.png', size: 0.25 });
+    expect(resolveOptions({ data: 'x', plaza: { image: 'logo.png', size: 0.25, invert: false } }).plaza).toEqual({ image: 'logo.png', size: 0.25, invert: false });
   });
 
   it.each([0.05, 0.3, Number.NaN])('plaza: rejects size %p', (size) => {

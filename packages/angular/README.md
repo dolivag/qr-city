@@ -27,7 +27,7 @@ export class CityComponent {
 
 ## Inputs and outputs
 
-The same options as [`createQrCity`](../core), as `input()`s: `data` (required), `cityStyle`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `fallback`, `background`, `label`, `doorLabel`, `time` and `plaza`. **`cityStyle`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object).
+The same options as [`createQrCity`](../core), as `input()`s: `data` (required), `cityStyle`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `fallback`, `background`, `label`, `doorLabel`, `destinationLabel`, `time` and `plaza`. **`cityStyle`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object).
 
 | Output | Payload |
 | --- | --- |

@@ -133,6 +133,112 @@ test('plaza with a picture: it is painted in the plaza and the code still scans'
   }
 });
 
+// ---- Accessibility: where the code leads, and the whole thing usable with a keyboard
+test('the canvas is described by the destination, and a web address is a real link in the tab order', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate((o) => window.qrcity.mount(o as never), { data: PAYLOADS.url, style: 'moderna', destinationLabel: 'Destino:' });
+  const canvas = page.locator('#host canvas');
+  const id = await canvas.getAttribute('aria-describedby');
+  expect(id).toBeTruthy();
+  await expect(page.locator(`#${id}`)).toHaveText(`Destino: ${PAYLOADS.url}`);
+  const link = page.locator(`#${id} a`);
+  await expect(link).toHaveAttribute('href', PAYLOADS.url);
+  await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  // Hidden until it is reached with the keyboard: canvas first, then the link
+  const box = page.locator(`#${id}`);
+  expect((await box.boundingBox())?.width ?? 0).toBeLessThanOrEqual(1);
+  await canvas.focus();
+  await page.keyboard.press('Tab');
+  await expect(link).toBeFocused();
+  expect((await box.boundingBox())?.width ?? 0).toBeGreaterThan(60);
+  await page.keyboard.press('Tab');
+  expect((await box.boundingBox())?.width ?? 0).toBeLessThanOrEqual(1);
+});
+
+test('text that is not a web address is only described, never turned into a link (no javascript: links)', async ({ page }) => {
+  await page.goto('/');
+  for (const data of ['javascript:alert(1)', 'WIFI:S:casa;T:WPA;P:secreto;;', 'hola mundo']) {
+    await page.evaluate((o) => window.qrcity.mount(o as never), { data, style: 'moderna' });
+    const id = await page.locator('#host canvas').getAttribute('aria-describedby');
+    await expect(page.locator(`#${id}`)).toHaveText(`Destination: ${data}`);
+    await expect(page.locator(`#${id} a`)).toHaveCount(0);
+  }
+});
+
+test('the description follows the data when it changes with update()', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate((o) => window.qrcity.mount(o as never), { data: PAYLOADS.url, style: 'moderna' });
+  await page.evaluate(() => window.qrcity.controller?.update({ data: 'https://example.com/otra' }));
+  const id = await page.locator('#host canvas').getAttribute('aria-describedby');
+  await expect(page.locator(`#${id} a`)).toHaveAttribute('href', 'https://example.com/otra');
+  await page.evaluate(() => window.qrcity.controller?.update({ data: 'solo texto' }));
+  await expect(page.locator(`#${id} a`)).toHaveCount(0);
+  await expect(page.locator(`#${id}`)).toHaveText('Destination: solo texto');
+});
+
+test('everything works with the keyboard: reveal the QR, zoom, move around and come back', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate((o) => window.qrcity.mount(o as never), { data: PAYLOADS.url, style: 'moderna' });
+  const view = () => page.evaluate(() => window.qrcity.controller?.view);
+  const zoom = () => page.evaluate(() => window.qrcity.controller?.zoom ?? 1);
+  await page.locator('#host canvas').focus();
+  await page.keyboard.press('Enter');
+  expect(await view()).toBe('qr');
+  await page.keyboard.press('Space');
+  expect(await view()).toBe('city');
+  await page.keyboard.press('+');
+  expect(await zoom()).toBeGreaterThan(1);
+  await page.keyboard.press('+');
+  const zoomed = await zoom();
+  expect(zoomed).toBeGreaterThan(2);
+  const before = await page.locator('#host').screenshot();
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(400);
+  expect((await page.locator('#host').screenshot()).equals(before)).toBe(false); // the map moved
+  await page.keyboard.press('-');
+  expect(await zoom()).toBeLessThan(zoomed);
+  await page.keyboard.press('0');
+  expect(await zoom()).toBe(1);
+  // The canvas says it is a button, and which state it is in
+  const canvas = page.locator('#host canvas');
+  await expect(canvas).toHaveAttribute('role', 'button');
+  await expect(canvas).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('plaza: a white logo is inverted on its own, so that it shows on the light paving', async ({ page }) => {
+  await page.goto('/');
+  // A white ring and a white square on a transparent background: invisible on a light plaza
+  const image = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d') as CanvasRenderingContext2D;
+    g.strokeStyle = g.fillStyle = '#ffffff';
+    g.lineWidth = 12;
+    g.beginPath();
+    g.arc(64, 64, 50, 0, Math.PI * 2);
+    g.stroke();
+    g.fillRect(44, 44, 40, 40);
+    return c.toDataURL('image/png');
+  });
+  const darkInPlaza = async (invert: 'auto' | boolean) => {
+    await page.evaluate((o) => window.qrcity.mount(o as never), { data: PAYLOADS.url, style: 'moderna', plaza: { image, size: 0.25, invert } });
+    await page.waitForTimeout(300);
+    const img = readPng(await page.evaluate(() => window.qrcity.topDownPng()));
+    const from = Math.round(img.width * 0.45);
+    const to = Math.round(img.width * 0.55);
+    let dark = 0;
+    for (let y = from; y < to; y++) {
+      for (let x = from; x < to; x++) {
+        const i = (y * img.width + x) * 4;
+        if (0.2126 * img.data[i] + 0.7152 * img.data[i + 1] + 0.0722 * img.data[i + 2] < 100) dark++;
+      }
+    }
+    return dark;
+  };
+  expect(await darkInPlaza('auto')).toBeGreaterThan(80);
+  expect(await darkInPlaza(false)).toBe(0);
+});
+
 test('every error-correction level reads', async ({ page }) => {
   for (const errorCorrection of ['L', 'M', 'Q', 'H'] as const) {
     const img = await topDown(page, { data: PAYLOADS.url, style: 'moderna', errorCorrection });

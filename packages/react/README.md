@@ -32,7 +32,7 @@ export function City() {
 
 ## Props
 
-The same options as [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label`, `doorLabel`, `fallback`, `time`, `plaza`) and the callbacks `onReveal`, `onIntroStage`, `onViewChange`, `onZoomChange`, `onFallback` and `onError`, with two differences:
+The same options as [`createQrCity`](../core) (`data`, `intro`, `pauseAtThreshold`, `view`, `errorCorrection`, `quality`, `interactive`, `animate`, `maxPixelRatio`, `zoomable`, `maxZoom`, `wheelZoom`, `background`, `label`, `doorLabel`, `destinationLabel`, `fallback`, `time`, `plaza`) and the callbacks `onReveal`, `onIntroStage`, `onViewChange`, `onZoomChange`, `onFallback` and `onError`, with two differences:
 
 - **`cityStyle`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object), because **`style`** is the container's CSS style.
 - The remaining `<div>` props (`className`, `style`, `aria-*`…) go to the container. By default it is a square as wide as its parent.

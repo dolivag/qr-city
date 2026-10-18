@@ -4,6 +4,7 @@ import type { QrCityEcc, QrCityIntro, QrCityOptions, QrCityQuality, QrCityTime, 
 export interface ResolvedPlaza {
   image: string | null;
   size: number;
+  invert: 'auto' | boolean;
 }
 
 export const PLAZA_SIZE = { min: 0.1, max: 0.25, default: 0.2 } as const;
@@ -48,7 +49,8 @@ function resolvePlaza(input: QrCityOptions['plaza']): ResolvedPlaza | null {
     throw new RangeError(`[qr-city] \`plaza.size\` must be between ${PLAZA_SIZE.min} and ${PLAZA_SIZE.max}.`);
   }
   if (o.image !== undefined && typeof o.image !== 'string') throw new TypeError('[qr-city] `plaza.image` must be a URL string.');
-  return { image: o.image || null, size };
+  if (o.invert !== undefined && o.invert !== 'auto' && typeof o.invert !== 'boolean') throw new TypeError("[qr-city] `plaza.invert` must be 'auto', true or false.");
+  return { image: o.image || null, size, invert: o.invert ?? 'auto' };
 }
 
 /** Applies defaults and validates. Throws on invalid input; never touches the DOM. */
@@ -79,6 +81,7 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     fallback: oneOf('fallback', input.fallback ?? 'qr', FALLBACKS),
     label: input.label ?? 'QR code city',
     doorLabel: input.doorLabel ?? 'Open the door',
+    destinationLabel: input.destinationLabel ?? 'Destination:',
     background: input.background,
     onReveal: input.onReveal,
     onIntroStage: input.onIntroStage,

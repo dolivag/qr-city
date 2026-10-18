@@ -68,6 +68,8 @@ export class QrCityComponent {
   readonly background = input<string>();
   readonly label = input<string>();
   readonly doorLabel = input<string>();
+  /** Words that introduce the destination of the code for assistive technology. Default `'Destination:'`. */
+  readonly destinationLabel = input<string>();
   /** `'night'`: the same city after dark. Default `'day'`. */
   readonly time = input<QrCityTime>();
   /** A plaza with your picture in the middle of the city: `true` or `{ image, size }`. */
@@ -110,6 +112,7 @@ export class QrCityComponent {
       background: this.background(),
       label: this.label(),
       doorLabel: this.doorLabel(),
+      destinationLabel: this.destinationLabel(),
       plaza: this.plaza(),
       time: this.time(),
     };

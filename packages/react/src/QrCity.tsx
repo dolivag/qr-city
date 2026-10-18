@@ -29,7 +29,7 @@ const PLACEHOLDER_STYLE: CSSProperties = { position: 'absolute', inset: 0 };
 export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(props, ref) {
   const {
     data, cityStyle, intro, pauseAtThreshold, view, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, plaza, time,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, plaza, time, destinationLabel,
     onReveal, onIntroStage, onViewChange, onZoomChange, onFallback, onError,
     style, className, ...rest
   } = props;
@@ -49,7 +49,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
 
   const options: Omit<QrCityOptions, keyof Callbacks> = {
     data, style: stableStyle, intro, pauseAtThreshold, view, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, plaza, time,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, plaza, time, destinationLabel,
   };
   const latest = useRef(options);
   latest.current = options;
@@ -88,7 +88,7 @@ export const QrCity = forwardRef<QrCityHandle, QrCityProps>(function QrCity(prop
   // Everything else is applied in place (the city is rebuilt only when it has to be).
   const key = JSON.stringify([
     data, styleKey, errorCorrection, quality, interactive, animate,
-    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, pauseAtThreshold, view, plaza, time,
+    maxPixelRatio, zoomable, maxZoom, wheelZoom, fallback, background, label, doorLabel, pauseAtThreshold, view, plaza, time, destinationLabel,
   ]);
   useEffect(() => {
     try {
