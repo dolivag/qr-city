@@ -38,6 +38,14 @@ import { createVegetation } from './vegetation';
 /** three ≥ r155 dropped the legacy ×π light scaling; this keeps the look of the original r128 prototype. */
 const LIGHT_SCALE = Math.PI;
 const MAX_GROUND_TEXTURE = 4096;
+/** Glass of a window with the light off, at night. */
+const NIGHT_DARK_GLASS = '#1c2240';
+/**
+ * How the ground is lit at night, seen from the side: a cool moonlight tint (the ground is unlit, so
+ * it would stay as bright as by day). Snow turns blue-white and the sea a deep blue, which keeps them
+ * recognisable; the tint fades to nothing in the top-down view.
+ */
+const NIGHT_GROUND = [0.4, 0.48, 0.7] as const;
 /** Floor counts a tower can have: close enough to any height, few enough to share geometry. */
 const FLOOR_STEPS = [2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 19, 22, 26, 30, 35, 41];
 /** Side of a building as a fraction of its module while the city is seen from the side. */
@@ -353,7 +361,8 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   for (let i = 0; i < guv.count; i++) {
     guv.setXY(i, (gpos.getX(i) + size / 2) / size, 1 - (gpos.getZ(i) + size / 2) / size);
   }
-  const ground = new Mesh(gGeo, [basic(0xffffff, { map: groundTex }), lambert(P.base)]);
+  const groundMat = basic(0xffffff, { map: groundTex });
+  const ground = new Mesh(gGeo, [groundMat, lambert(P.base)]);
   ground.scale.y = 0.001;
   city.add(ground);
 
@@ -387,31 +396,45 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     // a transom, a sky-reflection gradient and a sill shadow, which reads less like a toy.
     const detailed = profile.level !== 'low';
     const W = S.buildings.windowColor;
+    // By day one window per tile; at night 2×2, each lit or dark at random, so the lit ones stand out
+    const cells = S.night ? 2 : 1;
     const a = mk();
     a.fillStyle = '#ffffff';
     a.fillRect(0, 0, 64, 64);
-    if (detailed) {
-      a.fillStyle = 'rgba(0,0,0,0.07)';
-      a.fillRect(13, 48, 38, 3);
-      a.fillStyle = 'rgba(0,0,0,0.30)';
-      round(a, 13, 16, 38, 33, 2);
-      const g = a.createLinearGradient(0, 18, 0, 47);
-      g.addColorStop(0, mixHex(W, '#ffffff', 0.4));
-      g.addColorStop(1, mixHex(W, '#000000', 0.12));
-      a.fillStyle = g;
-      for (const [x, y, w, h] of GLASS) a.fillRect(x, y, w, h);
-      a.fillStyle = 'rgba(255,255,255,0.35)';
-      a.beginPath();
-      a.moveTo(16, 19);
-      a.lineTo(26, 19);
-      a.lineTo(17, 30);
-      a.lineTo(16, 30);
-      a.fill();
-    } else {
-      a.fillStyle = W;
-      round(a, 12, 18, 40, 28, 8);
-      a.fillStyle = 'rgba(255,255,255,0.55)';
-      round(a, 15, 21, 16, 6, 3);
+    const drawWindow = (f: CanvasRenderingContext2D, glass: string) => {
+      if (detailed) {
+        f.fillStyle = 'rgba(0,0,0,0.07)';
+        f.fillRect(13, 48, 38, 3);
+        f.fillStyle = 'rgba(0,0,0,0.30)';
+        round(f, 13, 16, 38, 33, 2);
+        const g = f.createLinearGradient(0, 18, 0, 47);
+        g.addColorStop(0, mixHex(glass, '#ffffff', 0.4));
+        g.addColorStop(1, mixHex(glass, '#000000', 0.12));
+        f.fillStyle = g;
+        for (const [x, y, w, h] of GLASS) f.fillRect(x, y, w, h);
+        f.fillStyle = 'rgba(255,255,255,0.35)';
+        f.beginPath();
+        f.moveTo(16, 19);
+        f.lineTo(26, 19);
+        f.lineTo(17, 30);
+        f.lineTo(16, 30);
+        f.fill();
+      } else {
+        f.fillStyle = glass;
+        round(f, 12, 18, 40, 28, 8);
+        f.fillStyle = 'rgba(255,255,255,0.55)';
+        round(f, 15, 21, 16, 6, 3);
+      }
+    };
+    const lit = (cx: number, cy: number) => cells === 1 || rand(cx * 7 + 3, cy * 5 + 11) < 0.7;
+    for (let cy = 0; cy < cells; cy++) {
+      for (let cx = 0; cx < cells; cx++) {
+        a.save();
+        a.translate((cx * 64) / cells, (cy * 64) / cells);
+        a.scale(1 / cells, 1 / cells);
+        drawWindow(a, lit(cx, cy) ? W : NIGHT_DARK_GLASS);
+        a.restore();
+      }
     }
     const map = tracker.track(new CanvasTexture(a.canvas));
     let mask: CanvasTexture | null = null;
@@ -419,12 +442,21 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       const b = mk();
       b.fillStyle = '#000';
       b.fillRect(0, 0, 64, 64);
-      b.fillStyle = '#fff';
-      if (detailed) for (const [x, y, w, h] of GLASS) b.fillRect(x, y, w, h);
-      else {
-        round(b, 12, 18, 40, 28, 8);
-        b.fillStyle = '#000';
-        b.fillRect(30, 18, 4, 28);
+      for (let cy = 0; cy < cells; cy++) {
+        for (let cx = 0; cx < cells; cx++) {
+          if (!lit(cx, cy)) continue;
+          b.save();
+          b.translate((cx * 64) / cells, (cy * 64) / cells);
+          b.scale(1 / cells, 1 / cells);
+          b.fillStyle = '#fff';
+          if (detailed) for (const [x, y, w, h] of GLASS) b.fillRect(x, y, w, h);
+          else {
+            round(b, 12, 18, 40, 28, 8);
+            b.fillStyle = '#000';
+            b.fillRect(30, 18, 4, 28);
+          }
+          b.restore();
+        }
       }
       mask = tracker.track(new CanvasTexture(b.canvas));
     }
@@ -433,11 +465,11 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       t.wrapS = t.wrapT = RepeatWrapping;
       t.anisotropy = profile.anisotropy;
     }
-    return { map, mask };
+    return { map, mask, cells };
   })();
   const towerMats = P.towers.map((c, i) =>
     neon
-      ? lambert(c, { map: facade.map, emissive: col(neon[i % neon.length]), emissiveMap: facade.mask, emissiveIntensity: 0.9 })
+      ? lambert(c, { map: facade.map, emissive: col(neon[i % neon.length]), emissiveMap: facade.mask, emissiveIntensity: S.night ? 1.25 : 0.9 })
       : lambert(c, { map: facade.map }),
   );
   const houseMats = P.houses.map((c) => lambert(c));
@@ -454,7 +486,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     if (side) {
       for (let i = side.start; i < side.start + side.count; i++) {
         const v = tg.index ? tg.index.getX(i) : i;
-        uv.setXY(v, uv.getX(v) * 2.1 + 0.5, uv.getY(v) * floors);
+        uv.setXY(v, (uv.getX(v) * 2.1) / facade.cells + 0.5, (uv.getY(v) * floors) / facade.cells);
       }
     }
     towerCache.set(floors, tg);
@@ -523,7 +555,9 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
         h = Math.max(isDoor ? 2.6 : 0.9, h * S.buildings.heightMul);
         skyline = Math.max(skyline, h);
         // Floors from a fixed scale, so towers share geometry and draw in batches (windows vary a few %)
-        const floors = FLOOR_STEPS.reduce((best, f) => (Math.abs(f - h / 0.42) < Math.abs(best - h / 0.42) ? f : best));
+        // (an even count at night, so the 2×2 window tiles end on a whole row)
+        let floors = FLOOR_STEPS.reduce((best, f) => (Math.abs(f - h / 0.42) < Math.abs(best - h / 0.42) ? f : best));
+        if (facade.cells > 1) floors = Math.max(2, 2 * Math.round(floors / facade.cells));
         const body = new Mesh(towerGeo(floors), [roofMat, pick(towerMats, rand(c, r))]);
         body.scale.y = h;
         grp.add(body);
@@ -679,6 +713,11 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     for (const b of buildings) {
       const k = reduce ? 1 : clamp01((el - (b.userData.delay as number)) / 0.9);
       b.scale.set(fill, Math.max(0.001, 1 - Math.pow(1 - k, 3)), fill);
+    }
+    // At night the ground (unlit, so it would stay bright) is dimmed from the side and lights up for the QR
+    if (S.night) {
+      const k = smooth(0.3, 0.9, t);
+      groundMat.color.setRGB(NIGHT_GROUND[0] + (1 - NIGHT_GROUND[0]) * k, NIGHT_GROUND[1] + (1 - NIGHT_GROUND[1]) * k, NIGHT_GROUND[2] + (1 - NIGHT_GROUND[2]) * k);
     }
     if (banks.length && banksShown !== t < 0.35) {
       banksShown = t < 0.35;

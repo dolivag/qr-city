@@ -9,6 +9,7 @@ import type {
   QrCityQuality,
   QrCityStyle,
   QrCityStyleId,
+  QrCityTime,
   QrCityView,
 } from '@qr-city/core';
 
@@ -19,14 +20,14 @@ const Base: typeof HTMLElement =
 const ATTRIBUTES = [
   'data', 'style-name', 'intro', 'view', 'error-correction', 'quality',
   'animate', 'interactive', 'background', 'label', 'pause-at-threshold', 'door-label', 'zoomable', 'max-zoom', 'wheel-zoom', 'fallback',
-  'plaza', 'plaza-image', 'plaza-size',
+  'plaza', 'plaza-image', 'plaza-size', 'time',
 ] as const;
 
 /** Element property → option name (they differ for `cityStyle` and `animated`). */
 const PROPERTY_OPTIONS: Record<string, string> = {
   data: 'data', cityStyle: 'style', intro: 'intro', view: 'view', errorCorrection: 'errorCorrection', quality: 'quality',
   animated: 'animate', interactive: 'interactive', background: 'background', label: 'label', pauseAtThreshold: 'pauseAtThreshold',
-  doorLabel: 'doorLabel', zoomable: 'zoomable', maxZoom: 'maxZoom', wheelZoom: 'wheelZoom', fallback: 'fallback', plaza: 'plaza',
+  doorLabel: 'doorLabel', zoomable: 'zoomable', maxZoom: 'maxZoom', wheelZoom: 'wheelZoom', fallback: 'fallback', plaza: 'plaza', time: 'time',
 };
 
 const TEMPLATE_CSS = `
@@ -52,7 +53,7 @@ export interface QrCityEventMap {
  * `pause-at-threshold` (with `intro="door"`: wait at the white screen until `continueIntro()`), `door-label`,
  * `zoomable` (`false` disables zoom and pan), `max-zoom`, `wheel-zoom` (`ctrl` | `always` | `off`),
  * `fallback` (`qr` shows a plain QR when WebGL is missing; `none` reports an error instead),
- * `plaza` (a plaza in the middle of the city), `plaza-image` (picture on it: a URL) and `plaza-size` (0.1–0.25; property `plaza`).
+ * `time` (`day` | `night`), `plaza` (a plaza in the middle of the city), `plaza-image` (picture on it: a URL) and `plaza-size` (0.1–0.25; property `plaza`).
  * Size it with CSS (default: a square as wide as its container).
  */
 export class QrCityElement extends Base {
@@ -99,6 +100,9 @@ export class QrCityElement extends Base {
 
   get errorCorrection(): QrCityEcc | undefined { return this.#opts.errorCorrection; }
   set errorCorrection(v: QrCityEcc | undefined) { this.#set({ errorCorrection: v }); }
+  /** `'night'`: the same city after dark. Default `'day'`. */
+  get time(): QrCityTime | undefined { return this.#opts.time; }
+  set time(v: QrCityTime | undefined) { this.#set({ time: v }); }
   /** A plaza with your picture in the middle of the city: `true` or `{ image, size }`. */
   get plaza(): boolean | QrCityPlaza | undefined { return this.#opts.plaza; }
   set plaza(v: boolean | QrCityPlaza | undefined) { this.#set({ plaza: v }); }
@@ -247,6 +251,7 @@ export class QrCityElement extends Base {
       case 'max-zoom': o.maxZoom = v === undefined ? undefined : Number(v); break;
       case 'wheel-zoom': o.wheelZoom = v; break;
       case 'fallback': o.fallback = v; break;
+      case 'time': o.time = v; break;
       case 'plaza': case 'plaza-image': case 'plaza-size': o.plaza = this.#plazaAttributes(); break;
     }
     Object.assign(o, kept); // properties set before the upgrade win over attributes (as in Lit)

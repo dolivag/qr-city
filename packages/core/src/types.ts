@@ -21,6 +21,9 @@ export type QrCityView = 'city' | 'qr';
 /** `auto` picks `low` on touch devices with small screens. */
 export type QrCityQuality = 'auto' | 'high' | 'low' | 'ultra';
 
+/** Time of day: `night` turns any style into its night version. */
+export type QrCityTime = 'day' | 'night';
+
 /** QR error-correction level. */
 export type QrCityEcc = 'L' | 'M' | 'Q' | 'H';
 
@@ -120,6 +123,12 @@ export interface QrCityStyle {
   flyers: { kind: 'birds' | 'gulls' | 'drones' | 'snow'; color: string };
   /** Light border around the QR, in modules (5–6). */
   quietZone: number;
+  /**
+   * Night rendering: a starry sky, and the ground dimmed while the city is seen from the side (it lights up
+   * in the top-down view, so the code scans as ever). `time: 'night'` derives a full night style from any
+   * style; set it yourself only on a style you made for the night.
+   */
+  night?: boolean;
   /** Door scene theme. Falls back to the `moderna` one. */
   door?: QrCityDoorTheme;
 }
@@ -135,6 +144,8 @@ export interface QrCityOptions {
   pauseAtThreshold?: boolean;
   /** Initial view. Default `'city'`. */
   view?: QrCityView;
+  /** `'night'`: the same city after dark (stars, moonlight, windows lit). The QR scans the same. Default `'day'`. */
+  time?: QrCityTime;
   /** Default `'M'`. Always `'H'` while `plaza` is on. */
   errorCorrection?: QrCityEcc;
   /** A plaza with your picture in the middle of the city. Default off. */

@@ -19,7 +19,8 @@ import { createCity } from './scene/city';
 import type { City } from './scene/city';
 import { createDoorScene, ENTER_DURATION } from './scene/door';
 import type { DoorScene } from './scene/door';
-import { resolveStyle } from './styles';
+import { resolveStyleAt } from './styles';
+import { nightSky } from './scene/sky';
 import { moderna } from './styles/moderna';
 import type {
   QrCityController,
@@ -50,7 +51,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
 
   let raw: QrCityOptions = { ...options };
   let opts: ResolvedOptions = resolveOptions(raw);
-  let style: QrCityStyle = resolveStyle(opts.style);
+  let style: QrCityStyle = resolveStyleAt(opts.style, opts.time);
   let profile: QualityProfile = resolveQuality(opts.quality);
   warnIfUltraMissing(profile.level);
   // A custom style can break the scan-ability invariant; built-in ones cannot. Say so once, at creation.
@@ -140,10 +141,19 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     veil.style.opacity = String(v);
   }
 
+  let skyTexture: ReturnType<typeof nightSky> | null = null;
+  let skyColor = '';
   function applyBackground() {
+    const starry = style.night && opts.background === undefined;
+    if (!starry) { skyTexture?.dispose(); skyTexture = null; }
     if (opts.background === 'transparent') {
       cityScene.background = null;
       renderer.setClearColor(0x000000, 0);
+    } else if (starry) {
+      if (skyColor !== style.palette.sky) { skyTexture?.dispose(); skyTexture = null; }
+      skyColor = style.palette.sky;
+      skyTexture ??= nightSky(skyColor);
+      cityScene.background = skyTexture;
     } else {
       cityScene.background = col(opts.background ?? style.palette.sky);
     }
@@ -601,7 +611,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     if (next.data !== undefined) validateData(next.data);
     const resolved = resolveOptions(merged);
     if (resolved.intro !== intro) throw new RangeError('[qr-city] `intro` is fixed at creation and cannot be changed with update().');
-    const nextStyle = resolveStyle(resolved.style);
+    const nextStyle = resolveStyleAt(resolved.style, resolved.time);
     if (resolved.quality !== opts.quality) {
       // A quality picked by hand (or `auto` again) starts from scratch
       autoLow = false;
@@ -677,6 +687,8 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     clearTimeout(lostTimer);
     flat?.dispose();
     flat = null;
+    skyTexture?.dispose();
+    skyTexture = null;
     observer?.disconnect();
     if (!observer) removeEventListener('resize', resize);
     reduceQuery?.removeEventListener?.('change', onMotionChange);

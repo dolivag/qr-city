@@ -5,7 +5,7 @@
       "packages/core/dist/index.js",
       "packages/core/dist/chunk-*.js"
     ],
-    "limit": "32 kB",
+    "limit": "34 kB",
     "gzip": true
   },
   {

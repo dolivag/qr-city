@@ -18,6 +18,7 @@ export interface LabState {
   wheelZoom: 'ctrl' | 'always' | 'off';
   errorCorrection: 'L' | 'M' | 'Q' | 'H';
   quality: 'auto' | 'low' | 'high' | 'ultra';
+  time: 'day' | 'night';
   fallback: 'qr' | 'none';
   background: 'style' | 'transparent' | 'white' | 'black';
   label: string;
@@ -41,6 +42,7 @@ const LIB: LabState = {
   wheelZoom: 'ctrl',
   errorCorrection: 'M',
   quality: 'auto',
+  time: 'day',
   fallback: 'qr',
   background: 'style',
   label: 'QR code city',
@@ -65,6 +67,7 @@ const ENUMS: Partial<Record<keyof LabState, readonly string[]>> = {
   wheelZoom: ['ctrl', 'always', 'off'],
   errorCorrection: ['L', 'M', 'Q', 'H'],
   quality: ['auto', 'low', 'high', 'ultra'],
+  time: ['day', 'night'],
   fallback: ['qr', 'none'],
   background: ['style', 'transparent', 'white', 'black'],
 };
@@ -272,6 +275,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       case 'wheelZoom': city.wheelZoom = state.wheelZoom; break;
       case 'errorCorrection': city.errorCorrection = state.errorCorrection; break;
       case 'quality': city.quality = state.quality; break;
+      case 'time': city.time = state.time; break;
       case 'fallback': city.fallback = state.fallback; break;
       case 'background': city.background = BACKGROUNDS[state.background]; break;
       case 'label': city.label = state.label; break;
@@ -479,6 +483,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
         el('p', { class: 'tip', textContent: t('f.plazaTip') }),
       ),
       group(t('g.style'), true,
+        select('time', t('f.time'), [['day', t('o.day')], ['night', t('o.night')]]),
         presetsBox,
         warn,
       ),
@@ -561,7 +566,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     const st = styleSnippet();
     const mine = t('c.myStyle');
     props.push({ key: 'style', value: st.ref ?? mine });
-    for (const k of ['intro', 'pauseAtThreshold', 'view', 'errorCorrection', 'quality', 'interactive', 'animate', 'background', 'zoomable', 'maxZoom', 'wheelZoom', 'fallback', 'label', 'doorLabel'] as const) {
+    for (const k of ['intro', 'pauseAtThreshold', 'view', 'errorCorrection', 'quality', 'time', 'interactive', 'animate', 'background', 'zoomable', 'maxZoom', 'wheelZoom', 'fallback', 'label', 'doorLabel'] as const) {
       if (k === 'errorCorrection' && state.plaza) continue; // the plaza forces 'H'
       if (k === 'pauseAtThreshold' && state.intro !== 'door') continue;
       if (state[k] !== LIB[k]) {
@@ -651,6 +656,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     city.wheelZoom = state.wheelZoom;
     city.errorCorrection = state.errorCorrection;
     city.quality = state.quality;
+    city.time = state.time;
     city.fallback = state.fallback;
     city.background = BACKGROUNDS[state.background];
     city.label = state.label;
