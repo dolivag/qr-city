@@ -1,4 +1,4 @@
-import type { QrCityEcc, QrCityIntro, QrCityOptions, QrCityQuality, QrCityView } from './types';
+import type { QrCityEcc, QrCityIntro, QrCityOptions, QrCityQuality, QrCityTime, QrCityView } from './types';
 
 /** The plaza as the city builds it: `null` when it is off. */
 export interface ResolvedPlaza {
@@ -16,6 +16,7 @@ const ECCS: readonly QrCityEcc[] = ['L', 'M', 'Q', 'H'];
 const WHEELS: readonly NonNullable<QrCityOptions['wheelZoom']>[] = ['ctrl', 'always', 'off'];
 const FALLBACKS: readonly NonNullable<QrCityOptions['fallback']>[] = ['qr', 'none'];
 const QUALITIES: readonly QrCityQuality[] = ['auto', 'high', 'low', 'ultra'];
+const TIMES: readonly QrCityTime[] = ['day', 'night'];
 
 export type ResolvedOptions = Required<Omit<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio' | 'plaza'>> &
   Pick<QrCityOptions, 'onReveal' | 'onIntroStage' | 'onViewChange' | 'onZoomChange' | 'onFallback' | 'onError' | 'background' | 'maxPixelRatio'> & {
@@ -68,6 +69,7 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     errorCorrection: plaza ? 'H' : oneOf('errorCorrection', input.errorCorrection ?? 'M', ECCS),
     plaza,
     quality: oneOf('quality', input.quality ?? 'auto', QUALITIES),
+    time: oneOf('time', input.time ?? 'day', TIMES),
     interactive: input.interactive ?? true,
     zoomable: input.zoomable ?? true,
     maxZoom: maxZoom,

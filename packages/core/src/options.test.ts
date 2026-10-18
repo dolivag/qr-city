@@ -60,6 +60,12 @@ describe('styles', () => {
     for (const [id, s] of Object.entries(styles)) expect(s.id).toBe(id);
   });
 
+  it('time: day by default, night on request, anything else is rejected', () => {
+    expect(resolveOptions({ data: 'x' }).time).toBe('day');
+    expect(resolveOptions({ data: 'x', time: 'night' }).time).toBe('night');
+    expect(() => resolveOptions({ data: 'x', time: 'dusk' as never })).toThrow(/Invalid time/);
+  });
+
   it('plaza: off by default; on, it forces the highest error correction', () => {
     expect(resolveOptions({ data: 'x' }).plaza).toBeNull();
     expect(resolveOptions({ data: 'x', plaza: false }).plaza).toBeNull();

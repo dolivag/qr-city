@@ -64,6 +64,42 @@ test('flyover: the camera sweeps over the city, can be skipped, and ends on a sc
   expect(decode(downscale(img, 3))).toBe('https://danioliva.dev');
 });
 
+// Night: the same code, lit differently. The ground only looks dim from the side; from above it is
+// as light as by day, and the roofs are the same, so the scan must not change.
+for (const style of STYLES) {
+  test(`${style} · night: the top-down view still scans`, async ({ page }) => {
+    for (const [name, data] of Object.entries(PAYLOADS)) {
+      const img = await topDown(page, { data, style, time: 'night' });
+      for (const factor of [1, 3, 4]) expect(decode(downscale(img, factor)), `${name} reduced ×${factor}`).toBe(data);
+    }
+  });
+}
+
+test('night is really darker from the side, and brings the stars', async ({ page }) => {
+  const shot = async (time: 'day' | 'night') => {
+    await page.goto('/');
+    await page.evaluate((o) => window.qrcity.mount(o as never), { data: PAYLOADS.url, style: 'moderna', time });
+    return readPng((await page.locator('#host').screenshot()).toString('base64'));
+  };
+  const mean = (img: ReturnType<typeof readPng>) => {
+    let sum = 0;
+    for (let i = 0; i < img.data.length; i += 4) sum += 0.2126 * img.data[i] + 0.7152 * img.data[i + 1] + 0.0722 * img.data[i + 2];
+    return sum / (img.data.length / 4);
+  };
+  expect(mean(await shot('night'))).toBeLessThan(mean(await shot('day')) * 0.5);
+});
+
+test('switching to night and back with update() rebuilds the city, and it still scans', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate((o) => window.qrcity.mount(o as never), { data: PAYLOADS.url, style: 'costera' });
+  await page.evaluate(() => window.qrcity.controller?.update({ time: 'night' }));
+  const night = readPng(await page.evaluate(() => window.qrcity.topDownPng()));
+  expect(decode(downscale(night, 3))).toBe(PAYLOADS.url);
+  await page.evaluate(() => window.qrcity.controller?.update({ time: 'day' }));
+  const day = readPng(await page.evaluate(() => window.qrcity.topDownPng()));
+  expect(decode(downscale(day, 3))).toBe(PAYLOADS.url);
+});
+
 // The plaza covers the middle of the code: error correction 'H' has to rebuild it, whatever
 // the style, the text, the pattern or the picture (here a busy, colourful one), up to the largest size.
 for (const style of STYLES) {

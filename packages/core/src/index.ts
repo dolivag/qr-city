@@ -15,5 +15,6 @@ export type {
   QrCityQuality,
   QrCityStyle,
   QrCityStyleId,
+  QrCityTime,
   QrCityView,
 } from './types';

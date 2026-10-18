@@ -25,6 +25,7 @@ import type {
   QrCityQuality,
   QrCityStyle,
   QrCityStyleId,
+  QrCityTime,
   QrCityView,
 } from '@qr-city/core';
 
@@ -65,6 +66,8 @@ export class QrCityComponent {
   readonly background = input<string>();
   readonly label = input<string>();
   readonly doorLabel = input<string>();
+  /** `'night'`: the same city after dark. Default `'day'`. */
+  readonly time = input<QrCityTime>();
   /** A plaza with your picture in the middle of the city: `true` or `{ image, size }`. */
   readonly plaza = input<boolean | QrCityPlaza>();
 
@@ -103,6 +106,7 @@ export class QrCityComponent {
       label: this.label(),
       doorLabel: this.doorLabel(),
       plaza: this.plaza(),
+      time: this.time(),
     };
     for (const k of Object.keys(all)) if (all[k] === undefined) delete all[k];
     return all as unknown as ConfigOptions;

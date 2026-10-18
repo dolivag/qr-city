@@ -24,7 +24,7 @@ const city = ref<InstanceType<typeof QrCity> | null>(null);
 
 ## Props and events
 
-The same options as [`createQrCity`](../core): `data`, `city-style`, `intro`, `pause-at-threshold`, `view`, `error-correction`, `quality`, `interactive`, `animate`, `max-pixel-ratio`, `zoomable`, `max-zoom`, `wheel-zoom`, `fallback`, `background`, `label`, `door-label` and `plaza`. **`city-style`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object), because `style` is the container's CSS style.
+The same options as [`createQrCity`](../core): `data`, `city-style`, `intro`, `pause-at-threshold`, `view`, `error-correction`, `quality`, `interactive`, `animate`, `max-pixel-ratio`, `zoomable`, `max-zoom`, `wheel-zoom`, `fallback`, `background`, `label`, `door-label`, `time` and `plaza`. **`city-style`** is the city's style (`'moderna' | 'costera' | 'ciberpunk' | 'nevada'` or a `QrCityStyle` object), because `style` is the container's CSS style.
 
 | Event | Payload |
 | --- | --- |
