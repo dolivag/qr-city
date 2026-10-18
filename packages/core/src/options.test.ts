@@ -51,7 +51,9 @@ describe('styles', () => {
     };
     const p = style.palette;
     expect(lum(p.roof)).toBeLessThan(0.35);
-    for (const c of [p.walk, p.ground, p.road, ...(p.water ? [p.water] : [])]) expect(lum(c)).toBeGreaterThan(0.8);
+    for (const c of [p.walk, p.ground, p.road]) expect(lum(c)).toBeGreaterThan(0.8);
+    // The sea starts beyond the beach, which already gives the code its 4 light modules of margin: it may be as deep a blue as it likes
+    if (p.water) expect(lum(p.water)).toBeGreaterThan(0.3);
     expect(style.quietZone).toBeGreaterThanOrEqual(5);
   });
 

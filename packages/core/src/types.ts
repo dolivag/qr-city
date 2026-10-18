@@ -98,7 +98,10 @@ export interface QrCityStyle {
     roof: string;
     towers: string[];
     houses: string[];
-    /** Sea around the city (light). Adds a beach, a lighthouse and boats. */
+    /**
+     * Sea around the city. Adds a beach, a lighthouse and boats. It begins beyond the beach (4.75 modules
+     * from the code), which already gives the code its quiet zone, so it can be any blue you like.
+     */
     water?: string;
     /** Fine grid painted on the ground. */
     grid?: string;
