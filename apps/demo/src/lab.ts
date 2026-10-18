@@ -23,6 +23,7 @@ export interface LabState {
   background: 'style' | 'transparent' | 'white' | 'black';
   label: string;
   doorLabel: string;
+  destinationLabel: string;
   plaza: boolean;
   plazaSize: number;
   /** `custom` is a picture uploaded here: it lives in this page only, never in the link. */
@@ -47,6 +48,7 @@ const LIB: LabState = {
   background: 'style',
   label: 'QR code city',
   doorLabel: 'Open the door',
+  destinationLabel: 'Destination:',
   plaza: false,
   plazaSize: 0.2,
   plazaImage: 'none',
@@ -72,7 +74,7 @@ const ENUMS: Partial<Record<keyof LabState, readonly string[]>> = {
   background: ['style', 'transparent', 'white', 'black'],
 };
 const BOOLEANS = ['pauseAtThreshold', 'interactive', 'zoomable', 'plaza'] as const;
-const STRINGS: Partial<Record<keyof LabState, number>> = { data: 300, label: 120, doorLabel: 120 };
+const STRINGS: Partial<Record<keyof LabState, number>> = { data: 300, label: 120, doorLabel: 120, destinationLabel: 60 };
 
 /** Reads and validates the options of a link: anything unexpected is ignored. */
 function readState(params: URLSearchParams): Partial<LabState> {
@@ -213,6 +215,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     pauseAtThreshold: true,
     label: t('city.label'),
     doorLabel: t('city.doorLabel'),
+    destinationLabel: t('city.destination'),
   });
   const state = demoDefaults();
   const params = new URLSearchParams(location.search);
@@ -280,6 +283,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       case 'background': city.background = BACKGROUNDS[state.background]; break;
       case 'label': city.label = state.label; break;
       case 'doorLabel': city.doorLabel = state.doorLabel; break;
+      case 'destinationLabel': city.destinationLabel = state.destinationLabel; break;
       case 'plaza': case 'plazaSize': case 'plazaImage': city.plaza = plazaOption(); break;
     }
     renderCode();
@@ -474,6 +478,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       group(t('g.a11y'), false,
         text('label', t('f.label'), 120),
         text('doorLabel', t('f.doorLabel'), 120),
+        text('destinationLabel', t('f.destinationLabel'), 60),
       ),
       group(t('g.plaza'), false,
         check('plaza', t('f.plaza')),
@@ -566,7 +571,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     const st = styleSnippet();
     const mine = t('c.myStyle');
     props.push({ key: 'style', value: st.ref ?? mine });
-    for (const k of ['intro', 'pauseAtThreshold', 'view', 'errorCorrection', 'quality', 'time', 'interactive', 'animate', 'background', 'zoomable', 'maxZoom', 'wheelZoom', 'fallback', 'label', 'doorLabel'] as const) {
+    for (const k of ['intro', 'pauseAtThreshold', 'view', 'errorCorrection', 'quality', 'time', 'interactive', 'animate', 'background', 'zoomable', 'maxZoom', 'wheelZoom', 'fallback', 'label', 'doorLabel', 'destinationLabel'] as const) {
       if (k === 'errorCorrection' && state.plaza) continue; // the plaza forces 'H'
       if (k === 'pauseAtThreshold' && state.intro !== 'door') continue;
       if (state[k] !== LIB[k]) {
@@ -661,6 +666,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
     city.background = BACKGROUNDS[state.background];
     city.label = state.label;
     city.doorLabel = state.doorLabel;
+    city.destinationLabel = state.destinationLabel;
     city.plaza = plazaOption();
   }
 
@@ -678,6 +684,7 @@ export function createLab(city: QrCityElement, root: HTMLElement, hooks: Hooks):
       const next: Partial<LabState> = {};
       if (isDefaultText('city.label', state.label)) next.label = t('city.label');
       if (isDefaultText('city.doorLabel', state.doorLabel)) next.doorLabel = t('city.doorLabel');
+      if (isDefaultText('city.destination', state.destinationLabel)) next.destinationLabel = t('city.destination');
       set(next);
       buildControls();
       updateWarn();

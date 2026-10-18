@@ -39,6 +39,7 @@ const city = createQrCity(hostElement, {
 | `background` | the style's sky | CSS colour or `'transparent'`. |
 | `fallback` | `'qr'` | What to do without WebGL: `'qr'` shows a flat, scannable QR in the style's colours; `'none'` throws. |
 | `label` / `doorLabel` | `'QR code city'` / `'Open the door'` | Accessible name of the canvas (and while the door waits). |
+| `destinationLabel` | `'Destination:'` | Words that introduce where the code leads. The canvas is described by `<destinationLabel> <data>`; when `data` is a web address (`http(s)://…`), a real link to it follows the canvas in the tab order and shows while it has the focus. Anything else is only described, never linked. |
 | `onReveal` / `onIntroStage` / `onViewChange` / `onZoomChange` / `onFallback` / `onError` | — | `onReveal` fires when the city is on screen: when it finishes building or, with `intro: 'door'`, when the flight ends (and after every rebuild). `onIntroStage` receives each stage. |
 
 ## Controller (`QrCityController`)

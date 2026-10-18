@@ -79,6 +79,7 @@ export function resolveOptions(input: QrCityOptions): ResolvedOptions {
     fallback: oneOf('fallback', input.fallback ?? 'qr', FALLBACKS),
     label: input.label ?? 'QR code city',
     doorLabel: input.doorLabel ?? 'Open the door',
+    destinationLabel: input.destinationLabel ?? 'Destination:',
     background: input.background,
     onReveal: input.onReveal,
     onIntroStage: input.onIntroStage,

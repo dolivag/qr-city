@@ -24,6 +24,7 @@ To register it yourself: `import { defineQrCity } from '@qr-city/element'; defin
 | `intro` | `intro` | `none` \| `door` \| `flyover`. If it changes, the element restarts. |
 | `pause-at-threshold` | `pauseAtThreshold` | With `intro="door"`, waits on the white screen until `continueIntro()`. |
 | `door-label` | `doorLabel` | Accessible name while the door waits. |
+| `destination-label` | `destinationLabel` | Words that introduce where the code leads, for screen readers (default `Destination:`). A web address becomes a real link in the tab order. |
 | `zoomable` | `zoomable` | `zoomable="false"` disables zoom and pan. |
 | `max-zoom` | `maxZoom` | Maximum zoom (default 8). |
 | `wheel-zoom` | `wheelZoom` | `ctrl` (default) \| `always` \| `off`. |
