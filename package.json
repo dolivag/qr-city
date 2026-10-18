@@ -14,6 +14,7 @@
     "lint": "nx run-many -t lint",
     "test": "nx run-many -t test",
     "demo": "nx run demo:dev",
+    "video": "node scripts/video/record.mjs",
     "size": "npm run build && size-limit",
     "changeset": "changeset",
     "version": "changeset version && npm install --package-lock-only",
