@@ -485,6 +485,9 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   }
 
   const snowMat = lambert(0xffffff);
+  /** The snow piled at the foot of the buildings: gone in the top-down view, where it would only grey the ground around the roofs. */
+  const banks: Mesh[] = [];
+  let banksShown = true;
   const driftGeo = geo(new SphereGeometry(1, Math.max(8, Math.round(14 * profile.detail)), Math.max(5, Math.round(8 * profile.detail))));
   const buildings: Group[] = [];
   let maxDelay = 0;
@@ -544,6 +547,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
         bank.scale.set(0.62 + rand(r, c * 3) * 0.12, 0.14 + rand(c, r * 5) * 0.06, 0.62 + rand(c * 3, r) * 0.12);
         bank.position.y = 0.01;
         grp.add(bank);
+        banks.push(bank);
       }
       grp.traverse((o) => { o.castShadow = true; });
       grp.userData.delay = isDoor ? -100 : Math.hypot(x, z) * 0.03 + rand(r * 3, c) * 0.2;
@@ -675,6 +679,10 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     for (const b of buildings) {
       const k = reduce ? 1 : clamp01((el - (b.userData.delay as number)) / 0.9);
       b.scale.set(fill, Math.max(0.001, 1 - Math.pow(1 - k, 3)), fill);
+    }
+    if (banks.length && banksShown !== t < 0.35) {
+      banksShown = t < 0.35;
+      for (const b of banks) b.visible = banksShown;
     }
     const vis = 1 - smooth(0.05, 0.55, t);
     decor.visible = vis > 0.01;
