@@ -35,6 +35,12 @@ import { smooth } from './util/math';
 
 const VIEW_SPEED = 1.6; // view-transition progress per second
 
+/** Visually hidden but read by screen readers (and focusable, for the link). */
+const HIDDEN = 'position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0';
+/** The link while it has the focus: a plain pill over the bottom-left corner. */
+const SHOWN = 'position:absolute;left:8px;bottom:8px;z-index:5;max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#fff;color:#111;padding:6px 10px;border-radius:4px;font:14px/1.3 system-ui,sans-serif;box-shadow:0 1px 6px rgba(0,0,0,.3)';
+let instances = 0;
+
 const doorTheme = (style: QrCityStyle): QrCityDoorTheme => style.door ?? (moderna.door as QrCityDoorTheme);
 
 /**
@@ -160,6 +166,31 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
     doorScene?.setBackground(opts.background === 'transparent' ? null : (opts.background ?? doorTheme(style).background));
     if (veil) veil.style.background = doorTheme(style).veil;
   }
+
+  // ---- Where the code leads, for screen readers and keyboards: a hidden description (and a link, for web addresses)
+  const dest = document.createElement('div');
+  dest.id = `qr-city-destination-${++instances}`;
+  dest.style.cssText = HIDDEN;
+  wrapper.appendChild(dest);
+  canvas.setAttribute('aria-describedby', dest.id);
+  const showLink = (on: boolean) => { dest.style.cssText = on ? SHOWN : HIDDEN; };
+  function applyDestination() {
+    dest.replaceChildren();
+    const text = `${opts.destinationLabel} ${opts.data}`;
+    if (/^https?:\/\//i.test(opts.data)) {
+      // Only web addresses become links: the text of a QR could be anything (`javascript:…`)
+      const a = document.createElement('a');
+      a.href = opts.data;
+      a.rel = 'noopener noreferrer';
+      a.textContent = text;
+      a.addEventListener('focus', () => showLink(true));
+      a.addEventListener('blur', () => showLink(false));
+      dest.appendChild(a);
+    } else {
+      dest.textContent = text;
+    }
+  }
+  applyDestination();
 
   function applyA11y() {
     const atDoor = stage === 'door';
@@ -653,6 +684,7 @@ export function createQrCity(el: HTMLElement, options: QrCityOptions): QrCityCon
       applyBackground();
     }
     flat?.update(opts.data, opts.errorCorrection, style);
+    applyDestination();
     if (!opts.zoomable || zoomTarget > opts.maxZoom) setZoom(opts.zoomable ? opts.maxZoom : 1, { immediate: true });
     applyA11y();
     if (viewRequested) setView(resolved.view);

@@ -180,6 +180,12 @@ export interface QrCityOptions {
   label?: string;
   /** Accessible name of the canvas while the door is waiting to be opened. Default `'Open the door'`. */
   doorLabel?: string;
+  /**
+   * Words that introduce the destination of the code for assistive technology. The canvas is described by
+   * `<destinationLabel> <data>`, and when `data` is a web address a real link to it follows the canvas in
+   * the tab order (it is shown while it has the focus). Default `'Destination:'`.
+   */
+  destinationLabel?: string;
   /** The city is on screen: it finished building (or the door or flyover intro finished). */
   onReveal?: () => void;
   /** The door intro moved to another stage. */
