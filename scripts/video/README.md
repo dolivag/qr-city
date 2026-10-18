@@ -42,4 +42,14 @@ Todo está al principio de `record.mjs`:
 - Duración de cada pausa: los `frame(...)` y `detail(...)`.
 - Sonidos: `sfx.mjs` (cada efecto está en su propio bloque, ligado al nombre de un evento).
 
+## Si falla ffmpeg al final
+
+Los fotogramas y el audio quedan en `.video-work/` (no se borran si el montaje falla). Cuando ffmpeg funcione
+(en Windows, abre una terminal nueva tras instalarlo; comprueba con `ffmpeg -version`), monta sin volver a grabar:
+
+```bash
+npm run video -- --assemble                       # con la música: --music pista.mp3
+npm run video -- --assemble --ffmpeg "C:\\ruta\\ffmpeg.exe"   # si no está en el PATH
+```
+
 `--keep` conserva los fotogramas en `.video-work/` por si solo quieres rehacer el montaje.

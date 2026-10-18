@@ -31,12 +31,14 @@ const HELP = `Graba el vídeo de la demo (vertical).
   --software                 WebGL por software (SwiftShader): para máquinas sin GPU. Lento.
   --quick                    Prueba rápida: low, 12 fps, 540×960.
   --keep                     Conserva los fotogramas sueltos (carpeta .video-work/).
+  --assemble                 No graba: monta el vídeo con los fotogramas que ya hay en .video-work/ (si falló ffmpeg).
+  --ffmpeg ruta              Ruta de ffmpeg si no está en el PATH (o variable FFMPEG_PATH).
   --url http://...           Usa una demo ya en marcha en lugar de construirla y servirla.
 
 Variables: PW_CHROMIUM_PATH (ruta de un Chromium ya instalado).`;
 
 function parseArgs(argv) {
-  const o = { quality: 'ultra', lang: 'es', fps: 24, scale: 2, out: 'qr-city-demo.mp4', music: null, musicVolume: 0.35, sfx: true, software: false, keep: false, url: null };
+  const o = { quality: 'ultra', lang: 'es', fps: 24, scale: 2, out: 'qr-city-demo.mp4', music: null, musicVolume: 0.35, sfx: true, software: false, keep: false, url: null, assemble: false, ffmpeg: process.env.FFMPEG_PATH || 'ffmpeg' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -53,6 +55,8 @@ function parseArgs(argv) {
     else if (a === '--quick') { o.quality = 'low'; o.fps = 12; o.scale = 1; }
     else if (a === '--keep') o.keep = true;
     else if (a === '--url') o.url = next();
+    else if (a === '--assemble') o.assemble = true;
+    else if (a === '--ffmpeg') o.ffmpeg = next();
     else { console.error(`Opción desconocida: ${a}\n\n${HELP}`); process.exit(1); }
   }
   if (!['ultra', 'high', 'low'].includes(o.quality)) throw new Error('--quality: ultra, high o low');
@@ -166,8 +170,10 @@ async function startServer() {
 // ---- Captura -----------------------------------------------------------------------------------------
 const WORK = join(ROOT, '.video-work');
 const FRAMES = join(WORK, 'frames');
-rmSync(WORK, { recursive: true, force: true });
-mkdirSync(FRAMES, { recursive: true });
+if (!opts.assemble) {
+  rmSync(WORK, { recursive: true, force: true });
+  mkdirSync(FRAMES, { recursive: true });
+}
 
 const STEP = 1000 / opts.fps;
 const logo = readFileSync(join(ROOT, 'assets/logo/logo-mark.svg'), 'utf8');
@@ -414,16 +420,26 @@ async function main() {
 
 function ffmpeg(args) {
   try {
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...args], { stdio: 'inherit' });
+    execFileSync(opts.ffmpeg, ['-y', '-loglevel', 'error', ...args], { stdio: 'inherit' });
   } catch (e) {
-    if (e.code === 'ENOENT') throw new Error('No encuentro ffmpeg. Instálalo (https://ffmpeg.org/download.html) y vuelve a lanzar con --keep para no rehacer los fotogramas.');
+    if (e.code === 'ENOENT') {
+      throw new Error(
+        `No encuentro ffmpeg (${opts.ffmpeg}).\n` +
+          '  · Si acabas de instalarlo, cierra esta terminal y abre otra: la actual no ve el PATH nuevo.\n' +
+          '  · Comprueba que `ffmpeg -version` funciona (en Windows: `where ffmpeg`).\n' +
+          '  · O indica la ruta: npm run video -- --assemble --ffmpeg "C:\\ruta\\a\\ffmpeg.exe"\n' +
+          `Los fotogramas siguen en ${WORK}: con --assemble se monta el vídeo sin volver a grabar.`,
+      );
+    }
     throw e;
   }
 }
 
 function assemble() {
   const out = resolve(process.cwd(), opts.out);
-  const duration = JSON.parse(readFileSync(join(WORK, 'events.json'), 'utf8')).frames / opts.fps;
+  const info = JSON.parse(readFileSync(join(WORK, 'events.json'), 'utf8'));
+  opts.fps = info.fps;
+  const duration = info.frames / info.fps;
   const input = ['-framerate', String(opts.fps), '-i', join(FRAMES, '%05d.jpg')];
   const video = ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '16', '-preset', 'slow', '-movflags', '+faststart'];
   const sfx = join(WORK, 'sfx.wav');
@@ -452,7 +468,11 @@ function assemble() {
 }
 
 try {
-  await main();
+  if (opts.assemble) {
+    if (!existsSync(join(WORK, 'events.json'))) throw new Error(`No hay nada que montar: falta ${join(WORK, 'events.json')}. Graba primero (npm run video).`);
+  } else {
+    await main();
+  }
   assemble();
   if (!opts.keep) rmSync(WORK, { recursive: true, force: true });
 } catch (e) {
