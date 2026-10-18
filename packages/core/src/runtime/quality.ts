@@ -23,13 +23,13 @@ export interface QualityProfile {
 }
 
 const HIGH: QualityProfile = {
-  level: 'high', antialias: true, shadows: true, shadowMapSize: 2048, pixelRatioCap: 2, groundPx: 56, facadePx: 128, anisotropy: 8, snowflakes: 1400,
+  level: 'high', antialias: true, shadows: true, shadowMapSize: 2048, pixelRatioCap: 2, groundPx: 56, facadePx: 128, anisotropy: 8, snowflakes: 1100,
   ringCars: 12, runCars: 18, people: 50, propStep: 0.85, flocks: 3, detail: 1,
 };
 
 /** High plus denser everything. The extra modelled parts come from `@qr-city/core/ultra` (see `ultraKit.ts`). */
 const ULTRA: QualityProfile = {
-  level: 'ultra', antialias: true, shadows: true, shadowMapSize: 4096, pixelRatioCap: 3, groundPx: 64, facadePx: 256, anisotropy: 16, snowflakes: 2200,
+  level: 'ultra', antialias: true, shadows: true, shadowMapSize: 4096, pixelRatioCap: 3, groundPx: 64, facadePx: 256, anisotropy: 16, snowflakes: 1500,
   ringCars: 16, runCars: 26, people: 80, propStep: 0.62, flocks: 4, detail: 1.5,
 };
 
