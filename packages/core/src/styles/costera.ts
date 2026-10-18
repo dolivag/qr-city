@@ -5,7 +5,7 @@ export const costera: QrCityStyle = {
   name: 'Costera',
   description: 'Casas blancas, palmeras, barcos y gaviotas',
   palette: {
-    sky: '#e4f4f6',
+    sky: '#d9f1f7',
     hemiSky: '#f2fbff',
     hemiGround: '#e8dcc4',
     hemiIntensity: 0.95,
@@ -15,8 +15,8 @@ export const costera: QrCityStyle = {
     ground: '#f6f2e8',
     road: '#e7e2d4',
     dash: '#ffffff',
-    base: '#9fd3df',
-    water: '#c4e7ee',
+    base: '#2f8db4',
+    water: '#3fb1da',
     roof: '#2a4d5c',
     towers: ['#ffffff', '#d8eef5', '#f6e7c8', '#cde7e3', '#f3d6c9'],
     houses: ['#ffffff', '#f4f8fb', '#f9efdc', '#e3f2f4'],
@@ -25,5 +25,5 @@ export const costera: QrCityStyle = {
   vegetation: { kind: 'palm', colors: ['#8fcf9e', '#a5d98a'] },
   traffic: { carColors: ['#ffffff', '#f6d38a', '#8fd0de', '#f4a5a0', '#b8e3c8'] },
   flyers: { kind: 'gulls', color: '#ffffff' },
-  quietZone: 6,
+  quietZone: 8,
 };

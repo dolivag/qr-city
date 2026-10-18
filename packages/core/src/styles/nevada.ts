@@ -5,7 +5,7 @@ export const nevada: QrCityStyle = {
   name: 'Nevada',
   description: 'Chalets de madera, pinos y nieve cayendo',
   palette: {
-    sky: '#eef2f7',
+    sky: '#d4e0ee',
     hemiSky: '#f7faff',
     hemiGround: '#dfe5ee',
     hemiIntensity: 1.0,
@@ -15,7 +15,7 @@ export const nevada: QrCityStyle = {
     ground: '#f7f9fc',
     road: '#e6ebf2',
     dash: '#ffffff',
-    base: '#dde4ee',
+    base: '#cdd9ea',
     roof: '#3a3550',
     towers: ['#d9b99b', '#c9a383', '#e4cdb4', '#bfa08a'],
     houses: ['#d9b99b', '#e4cdb4', '#cfae92', '#ead9c6'],
