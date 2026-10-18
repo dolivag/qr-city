@@ -426,7 +426,7 @@ function ffmpeg(args) {
       throw new Error(
         `No encuentro ffmpeg (${opts.ffmpeg}).\n` +
           '  · Si acabas de instalarlo, cierra esta terminal y abre otra: la actual no ve el PATH nuevo.\n' +
-          '  · Comprueba que `ffmpeg -version` funciona (en Windows: `where ffmpeg`).\n' +
+          '  · Comprueba que `ffmpeg -version` funciona (en PowerShell: `Get-Command ffmpeg`, o `where.exe ffmpeg`).\n' +
           '  · O indica la ruta: npm run video -- --assemble --ffmpeg "C:\\ruta\\a\\ffmpeg.exe"\n' +
           `Los fotogramas siguen en ${WORK}: con --assemble se monta el vídeo sin volver a grabar.`,
       );
