@@ -42,6 +42,11 @@ export interface QrCityPlaza {
   image?: string;
   /** Side of the plaza as a fraction of the code's side: 0.1–0.25. Default 0.2. */
   size?: number;
+  /**
+   * A light picture (a white logo) would vanish on the light paving. `'auto'` (default) turns a picture
+   * whose visible part is mostly light into its negative; `true` always does and `false` never.
+   */
+  invert?: 'auto' | boolean;
 }
 
 /** Colors of the door scene and the small door in the city (CSS hex strings). */

@@ -267,6 +267,8 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
    */
   const DARK_MAX = 60;
   const LIGHT_MIN = 205;
+  /** Average brightness above which a picture counts as light (and, on `auto`, is inverted). */
+  const LIGHT_PICTURE = 170;
   const rgbOf = (hex: string): [number, number, number] => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
   const luma = (r: number, gg: number, b: number) => 0.2126 * r + 0.7152 * gg + 0.0722 * b;
   const paving = rgbOf(P.walk);
@@ -289,6 +291,22 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     const x0 = W(toW(plaza.first) - 0.5);
     g.fillRect(x0, x0, plaza.side * px, plaza.side * px);
   }
+  /**
+   * A mostly light picture (a white logo) would vanish on the light paving: with `invert: 'auto'` it is
+   * turned into its negative. Judged by the average brightness of what is not transparent.
+   */
+  const shouldInvert = (d: Uint8ClampedArray): boolean => {
+    const mode = options.plaza?.invert ?? 'auto';
+    if (mode !== 'auto') return mode;
+    let sum = 0;
+    let n = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] < 40) continue;
+      sum += luma(d[i], d[i + 1], d[i + 2]);
+      n++;
+    }
+    return n > 0 && sum / n > LIGHT_PICTURE;
+  };
   /** Draws the plaza's picture: the one given, fitted inside it, or an emblem in the style's colours. */
   const paintPlaza = (picture: HTMLImageElement | null) => {
     if (!plaza) return;
@@ -300,11 +318,29 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     const inner = side * 0.94;
     let drawn = false;
     if (picture) {
+      // The picture goes on its own transparent layer first, to see what it is made of
+      const layer = document.createElement('canvas');
+      layer.width = layer.height = side;
+      const l = layer.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
       const fit = inner / Math.max(picture.naturalWidth, picture.naturalHeight);
       const w = picture.naturalWidth * fit;
       const h = picture.naturalHeight * fit;
-      a.imageSmoothingQuality = 'high';
-      a.drawImage(picture, (side - w) / 2, (side - h) / 2, w, h);
+      l.imageSmoothingQuality = 'high';
+      l.drawImage(picture, (side - w) / 2, (side - h) / 2, w, h);
+      try {
+        const data = l.getImageData(0, 0, side, side);
+        if (shouldInvert(data.data)) {
+          for (let i = 0; i < data.data.length; i += 4) {
+            data.data[i] = 255 - data.data[i];
+            data.data[i + 1] = 255 - data.data[i + 1];
+            data.data[i + 2] = 255 - data.data[i + 2];
+          }
+          l.putImageData(data, 0, 0);
+        }
+      } catch {
+        // Unreadable (another origin without CORS): the catch below leaves the paving bare
+      }
+      a.drawImage(layer, 0, 0);
       drawn = true;
     }
     if (!drawn) {
