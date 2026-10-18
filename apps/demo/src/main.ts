@@ -64,7 +64,10 @@ function sync() {
   for (const b of [toggle, zoomIn, zoomOut, zoomReset]) b.disabled = !ready || flat;
   zoomValue.textContent = `${Number(city.zoom.toFixed(1))}×`;
   setText(toggle, city.view === 'qr' ? 'panel.showCity' : 'panel.reveal');
-  if (!gate.hidden) setTimeout(() => input.focus({ preventScroll: true }), 350);
+  // The page behind a full-screen form (phones) must not scroll
+  document.documentElement.classList.toggle('modal', !gate.hidden);
+  // A phone's keyboard would cover half the form: there the field is only focused when it is tapped
+  if (!gate.hidden && !matchMedia('(pointer: coarse)').matches) setTimeout(() => input.focus({ preventScroll: true }), 350);
 }
 
 // The lab: every option the packages expose, with the code that reproduces it.
