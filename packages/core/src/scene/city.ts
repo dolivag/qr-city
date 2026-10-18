@@ -166,6 +166,7 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   scan('z');
 
   // ---- Painted ground
+  const snowy = S.flyers.kind === 'snow';
   const px = Math.max(8, Math.min(profile.groundPx, Math.floor(MAX_GROUND_TEXTURE / size)));
   const cv = document.createElement('canvas');
   cv.width = cv.height = Math.round(size * px);
@@ -179,9 +180,15 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   if (P.water) {
     g.fillStyle = P.water;
     g.fillRect(0, 0, cv.width, cv.height);
-    g.strokeStyle = 'rgba(255,255,255,0.6)';
-    g.lineWidth = 0.05 * px;
-    for (let i = 0; i < 40; i++) {
+    // Shallows around the beach: lighter water that fades into the deep sea
+    const R_sand = half + 4.75;
+    for (const [grow, alpha] of [[2.6, 0.16], [1.7, 0.2], [0.9, 0.26]] as const) {
+      g.fillStyle = `rgba(255,255,255,${alpha})`;
+      rrect(W(-R_sand - grow), W(-R_sand - grow), 2 * (R_sand + grow) * px, 2 * (R_sand + grow) * px, (0.8 + grow) * px);
+    }
+    g.strokeStyle = 'rgba(255,255,255,0.7)';
+    g.lineWidth = 0.06 * px;
+    for (let i = 0; i < 90; i++) {
       const x = rand(i, 1) * cv.width;
       const y = rand(1, i) * cv.height;
       g.beginPath();
@@ -189,8 +196,10 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
       g.quadraticCurveTo(x + 0.3 * px, y - 0.15 * px, x + 0.6 * px, y);
       g.stroke();
     }
+    // Foam line where the waves reach the sand
+    g.fillStyle = 'rgba(255,255,255,0.9)';
+    rrect(W(-R_sand - 0.22), W(-R_sand - 0.22), 2 * (R_sand + 0.22) * px, 2 * (R_sand + 0.22) * px, 1 * px);
     g.fillStyle = P.walk;
-    const R_sand = half + 4.75;
     rrect(W(-R_sand), W(-R_sand), 2 * R_sand * px, 2 * R_sand * px, 0.8 * px);
   } else {
     g.fillStyle = P.walk;
@@ -198,6 +207,23 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
   }
   g.fillStyle = P.ground;
   g.fillRect(W(-half - 0.25), W(-half - 0.25), (n + 0.5) * px, (n + 0.5) * px);
+  if (snowy) {
+    // Snow cover: soft drifts in a slightly cooler white, bright sparkles. Light enough not to touch the scan.
+    g.fillStyle = 'rgba(198,214,236,0.26)';
+    for (let i = 0; i < 260; i++) {
+      const r = (0.5 + rand(i, 41) * 1.6) * px;
+      g.beginPath();
+      g.ellipse(rand(i, 43) * cv.width, rand(47, i) * cv.height, r, r * (0.35 + rand(i, 49) * 0.3), rand(i, 51) * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = 'rgba(255,255,255,0.95)';
+    for (let i = 0; i < 520; i++) {
+      const r = (0.05 + rand(i, 53) * 0.07) * px;
+      g.beginPath();
+      g.arc(rand(i, 55) * cv.width, rand(57, i) * cv.height, r, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
   if (P.grid) {
     g.strokeStyle = P.grid;
     g.lineWidth = 0.03 * px;
@@ -486,6 +512,8 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
     }
   }
 
+  const snowMat = lambert(0xffffff);
+  const driftGeo = geo(new SphereGeometry(1, Math.max(8, Math.round(14 * profile.detail)), Math.max(5, Math.round(8 * profile.detail))));
   const buildings: Group[] = [];
   let maxDelay = 0;
   for (let r = 0; r < n; r++) {
@@ -539,6 +567,13 @@ export function createCity(style: QrCityStyle, qr: QrMatrix, profile: QualityPro
           unit.position.y = h;
           grp.add(unit);
         }
+      }
+      if (snowy && !isDoor) {
+        // Snow piled against the walls: a low, wide mound that spills over the neighbouring ground
+        const bank = new Mesh(driftGeo, snowMat);
+        bank.scale.set(0.62 + rand(r, c * 3) * 0.12, 0.14 + rand(c, r * 5) * 0.06, 0.62 + rand(c * 3, r) * 0.12);
+        bank.position.y = 0.01;
+        grp.add(bank);
       }
       grp.traverse((o) => { o.castShadow = true; });
       grp.userData.delay = isDoor ? -100 : Math.hypot(x, z) * 0.03 + rand(r * 3, c) * 0.2;
