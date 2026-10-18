@@ -134,7 +134,7 @@ export function createFlyers(ctx: SceneCtx): Flyers {
     dg.fillRect(0, 0, 32, 32);
     snowMat = ctx.tracker.track(new PointsMaterial({
       color: col(S.flyers.color), size: 3, map: ctx.tracker.track(new CanvasTexture(dot)),
-      sizeAttenuation: false, transparent: true, opacity: 0.95, depthWrite: false,
+      sizeAttenuation: false, transparent: true, opacity: 0.75, depthWrite: false,
     }));
     snow = new Points(g, snowMat);
     root.add(snow);
@@ -143,15 +143,16 @@ export function createFlyers(ctx: SceneCtx): Flyers {
   return {
     setViewport(cssHeight) {
       if (!snowMat) return;
-      // About 3 px on a tall desktop canvas, 1–1.5 px on a phone, times the pixel ratio.
+      // About 2.4 px on a tall desktop canvas, 1.2 px on a phone, times the pixel ratio: from afar the flakes
+      // must not hide the city behind them.
       const dpr = Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, 2);
-      const px = Math.max(1.4, Math.min(3.5, cssHeight * 0.0045)) * dpr;
+      const px = Math.max(1.2, Math.min(2.6, cssHeight * 0.0035)) * dpr;
       if (px !== snowMat.size) snowMat.size = px;
     },
     setVisibility(vis) {
       if (!snow || !snowMat) return;
       snow.visible = vis > 0.01;
-      snowMat.opacity = 0.95 * vis;
+      snowMat.opacity = 0.75 * vis;
     },
     update({ now, dt, move, k }) {
       for (const f of flocks) {
