@@ -1,5 +1,29 @@
 # @qr-city/core
 
+## 0.4.0
+
+### Minor Changes
+
+- [#33](https://github.com/dolivag/qr-city/pull/33) [`bb78f41`](https://github.com/dolivag/qr-city/commit/bb78f41e655b20a6ea73ab2368dd6c9f65a55a2d) Thanks [@dolivag](https://github.com/dolivag)! - Accesibilidad: el lienzo queda descrito con el destino del QR para los lectores de pantalla (`destinationLabel`, `'Destination:'` por defecto). Si el contenido es una dirección web, se añade un enlace real tras el lienzo en el orden del tabulador, que se muestra al recibir el foco; cualquier otro texto solo se describe, nunca se enlaza. Disponible en el Web Component (`destination-label`) y en React, Vue y Angular. El zoom, el desplazamiento y el cambio de vista con teclado ya existían y ahora tienen pruebas.
+
+- [#34](https://github.com/dolivag/qr-city/pull/34) [`f0fd4fc`](https://github.com/dolivag/qr-city/commit/f0fd4fc2622588a65219cddc6bb47d923ce171da) Thanks [@dolivag](https://github.com/dolivag)! - Marcador para renderizado en servidor: los componentes de React, Vue y Angular pintan en el servidor un QR plano con los colores del estilo (el mismo código que dibuja la ciudad), oculto a los lectores de pantalla. La página ya funciona, se puede escanear y no pega saltos mientras carga el 3D, que lo sustituye al montarse. El núcleo exporta `qrPlaceholder()` para hacer lo mismo a mano.
+
+- [#28](https://github.com/dolivag/qr-city/pull/28) [`bc011d7`](https://github.com/dolivag/qr-city/commit/bc011d722b1c0990a282515336f0d842b5f69482) Thanks [@dolivag](https://github.com/dolivag)! - Nueva opción `time: 'night'`: la misma ciudad de noche, con cielo estrellado y luna, luz de luna, ventanas encendidas y la escena de la puerta con un farol. Funciona con cualquier estilo (también con los propios) y el QR se lee igual: los tejados y el suelo conservan sus colores, y el suelo, que de lado se ve apagado, se ilumina en la vista cenital. Disponible en el Web Component (`time`) y en React, Vue y Angular.
+
+- [#24](https://github.com/dolivag/qr-city/pull/24) [`8fe8f6f`](https://github.com/dolivag/qr-city/commit/8fe8f6f30fb15fb5482d790a6fe186d2b20663a0) Thanks [@dolivag](https://github.com/dolivag)! - Nueva opción `plaza`: una plaza en el centro de la ciudad con tu imagen (logo), que solo se ve desde arriba, en la vista del QR. El código se sigue leyendo: fuerza la corrección de errores `'H'` y reduce la imagen a tonos claros y oscuros. Disponible en el Web Component (`plaza`, `plaza-image`, `plaza-size`) y en React, Vue y Angular.
+
+- [#27](https://github.com/dolivag/qr-city/pull/27) [`b24aa26`](https://github.com/dolivag/qr-city/commit/b24aa2647195afe42bf3f3afcc266329be004b1d) Thanks [@dolivag](https://github.com/dolivag)! - Rendimiento: las piezas repetidas (árboles, farolas, coches, personas, edificios) se dibujan en lotes instanciados, con un 90–95 % menos de llamadas de dibujo, y las copas de los árboles usan un tercio de los triángulos. Con `quality: 'auto'`, si el dispositivo no llega a ~30 fps se baja primero la densidad de píxeles y después el nivel de detalle.
+
+### Patch Changes
+
+- [#30](https://github.com/dolivag/qr-city/pull/30) [`4b3f4b8`](https://github.com/dolivag/qr-city/commit/4b3f4b85b6df62dcca8abe036e769ae7a00e8c30) Thanks [@dolivag](https://github.com/dolivag)! - Modo noche: las luces brillan más. Las ventanas encendidas dejan un halo sobre la fachada y tienen más intensidad, y las farolas tienen un resplandor que crece al hacer zoom. Los árboles de noche vuelven a verse verdes (la luz de luna azul los viraba a gris azulado). Solo afecta a la noche y a la vista de lado: el QR no cambia.
+
+- [#29](https://github.com/dolivag/qr-city/pull/29) [`c13cbf1`](https://github.com/dolivag/qr-city/commit/c13cbf11dbaf59a7f456fd82115e2a961a0480d6) Thanks [@dolivag](https://github.com/dolivag)! - Costera: el mar es ahora de un azul intenso con aguas someras más claras, espuma en la orilla y más extensión (`quietZone` de 8), y los barcos son más grandes y navegan por mar abierto. Nevada: el suelo se ve cubierto de nieve, con ventisqueros pintados, destellos y montones de nieve al pie de los edificios, sobre un cielo gris azulado que hace destacar el blanco.
+
+- [#36](https://github.com/dolivag/qr-city/pull/36) [`e14d05d`](https://github.com/dolivag/qr-city/commit/e14d05d68a82e4835d8e005f0661791b0b57adfb) Thanks [@dolivag](https://github.com/dolivag)! - Nevada: los copos son más pequeños y algo más transparentes, y hay menos en `high` y `ultra`, para que no tapen la ciudad vista desde lejos.
+
+- [#32](https://github.com/dolivag/qr-city/pull/32) [`ee61cd3`](https://github.com/dolivag/qr-city/commit/ee61cd34caba3f9384545a64036444f7d3b65aac) Thanks [@dolivag](https://github.com/dolivag)! - Plaza: un logo claro (por ejemplo, blanco sobre fondo transparente) se invierte solo para que se vea sobre el pavimento claro. Se puede forzar o desactivar con `plaza.invert` (`'auto'` por defecto, `true` o `false`).
+
 ## 0.3.1
 
 ### Patch Changes
